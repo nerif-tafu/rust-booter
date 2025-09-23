@@ -273,16 +273,50 @@
             bootButton.innerHTML = '<div class="loading"></div>Starting...';
             
             showStatus('Starting boot sequence...', 'info');
+            
+            // Show progress updates
+            const progressInterval = setInterval(() => {
+                showStatus('Boot sequence in progress... This may take 1-2 minutes. Please wait.', 'info');
+            }, 10000); // Update every 10 seconds
 
             try {
+                console.log('Sending request to /go endpoint...');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+                
                 const response = await fetch('/go', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
 
-                const result = await response.json();
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+                
+                if (!contentType || !contentType.includes('application/json')) {
+                    const textResponse = await response.text();
+                    console.error('Non-JSON response received:', textResponse);
+                    throw new Error('Server returned non-JSON response: ' + textResponse);
+                }
+                
+                let result;
+                try {
+                    result = await response.json();
+                    console.log('Response data:', result);
+                } catch (jsonError) {
+                    console.error('JSON parsing error:', jsonError);
+                    const textResponse = await response.text();
+                    console.error('Raw response text:', textResponse);
+                    throw new Error('Failed to parse JSON response: ' + jsonError.message + '. Raw response: ' + textResponse);
+                }
                 
                 if (result.success) {
                     showStatus('✅ Boot sequence completed successfully!', 'success');
@@ -290,8 +324,12 @@
                     showStatus('❌ Boot sequence failed: ' + result.error, 'error');
                 }
             } catch (error) {
+                console.error('Fetch error:', error);
                 showStatus('❌ Boot sequence failed: ' + error.message, 'error');
             } finally {
+                // Clear progress updates
+                clearInterval(progressInterval);
+                
                 // Re-enable button
                 bootButton.disabled = false;
                 bootButton.innerHTML = originalText;

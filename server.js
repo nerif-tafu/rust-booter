@@ -177,11 +177,14 @@ app.post('/go', async (req, res) => {
     console.log('Game launched successfully');
     console.log('Launch result:', launchResult);
     
-    res.json({
+    const responseData = {
       success: true,
       message: 'Boot sequence completed successfully',
       launchResult
-    });
+    };
+    
+    console.log('Sending success response:', responseData);
+    res.json(responseData);
     
   } catch (error) {
     console.error('Boot sequence failed:', error);
