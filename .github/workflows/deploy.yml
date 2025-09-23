@@ -57,6 +57,10 @@ jobs:
         # Stop the systemd service
         sudo systemctl stop rust-booter || true
         
+        # Kill any remaining processes (forceful cleanup)
+        sudo pkill -f "node server.js" || true
+        sleep 2
+        
     - name: Deploy application
       run: |
         # Create deployment directory if it doesn't exist
@@ -102,6 +106,12 @@ jobs:
         sudo systemctl daemon-reload
         sudo systemctl enable rust-booter
         sudo systemctl start rust-booter
+        
+        # Wait for service to start
+        sleep 3
+        
+        # Verify the service is running
+        sudo systemctl is-active rust-booter
         
     - name: Verify deployment
       run: |
