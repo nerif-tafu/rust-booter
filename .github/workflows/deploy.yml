@@ -1,0 +1,163 @@
+name: Deploy Rust Booter
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: self-hosted
+    
+    strategy:
+      matrix:
+        node-version: [22.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests (if any)
+      run: npm test --if-present
+      
+    - name: Lint code
+      run: npm run lint --if-present
+
+  deploy:
+    needs: test
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci --production
+      
+    - name: Create deployment package
+      run: |
+        mkdir -p deploy
+        cp -r package.json server.js public deploy/
+        cp -r node_modules deploy/
+        tar -czf rust-booter-deploy.tar.gz -C deploy .
+        
+    - name: Upload deployment artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rust-booter-deployment
+        path: rust-booter-deploy.tar.gz
+        retention-days: 30
+
+  deploy-to-server:
+    needs: deploy
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Download deployment artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: rust-booter-deployment
+        path: ./deploy
+        
+    - name: Deploy to local server
+      run: |
+        # Create application directory
+        sudo mkdir -p /opt/rust-booter
+        cd /opt/rust-booter
+        
+        # Stop existing service if running
+        sudo systemctl stop rust-booter || true
+        
+        # Backup current deployment
+        if [ -d "current" ]; then
+          sudo mv current backup-$(date +%Y%m%d-%H%M%S)
+        fi
+        
+        # Create new deployment directory
+        sudo mkdir -p current
+        
+        # Extract new deployment
+        sudo tar -xzf ../../deploy/rust-booter-deploy.tar.gz -C current/
+        
+        # Set proper ownership
+        sudo chown -R $USER:$USER current/
+        
+        # Create systemd service file
+        sudo tee /etc/systemd/system/rust-booter.service > /dev/null <<EOF
+        [Unit]
+        Description=Rust Booter - WOL Gaming PC Controller
+        After=network.target
+        Wants=network.target
+        
+        [Service]
+        Type=simple
+        User=$USER
+        WorkingDirectory=/opt/rust-booter/current
+        Environment=NODE_ENV=production
+        Environment=PORT=8534
+        ExecStart=/usr/bin/node server.js
+        Restart=always
+        RestartSec=10
+        StandardOutput=journal
+        StandardError=journal
+        
+        # Security settings
+        NoNewPrivileges=true
+        PrivateTmp=true
+        ProtectSystem=strict
+        ProtectHome=read-only
+        ReadWritePaths=/opt/rust-booter/current
+        
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+        
+        # Reload systemd and start service
+        sudo systemctl daemon-reload
+        sudo systemctl enable rust-booter
+        sudo systemctl start rust-booter
+        
+        # Wait a moment and check status
+        sleep 5
+        sudo systemctl status rust-booter --no-pager
+        
+    - name: Verify deployment
+      run: |
+        # Check if service is running
+        if sudo systemctl is-active --quiet rust-booter; then
+          echo "✅ Service is running successfully"
+        else
+          echo "❌ Service failed to start"
+          sudo journalctl -u rust-booter --no-pager -n 20
+          exit 1
+        fi
+        
+        # Check if port is listening
+        if netstat -tlnp | grep :8534 > /dev/null; then
+          echo "✅ Service is listening on port 8534"
+        else
+          echo "❌ Service is not listening on port 8534"
+          exit 1
+        fi
+        
+        echo "🎉 Deployment completed successfully!"
+        echo "🌐 Rust Booter is available at: http://localhost:8534"
