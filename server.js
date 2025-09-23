@@ -4,6 +4,7 @@ const wol = require('wake_on_lan');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
+const { Webhook } = require('discord-webhook-node');
 
 const app = express();
 const PORT = process.env.PORT || 8534;
@@ -21,7 +22,11 @@ const defaultConfig = {
   gamingPCIP: '',
   gamingPCMAC: '',
   rustServerIP: '',
-  rustServerPort: 28015
+  rustServerPort: 28015,
+  discordWebhookURL: '',
+  discordRoleID: '',
+  discordEnabled: false,
+  discordCustomMessage: ''
 };
 
 // Load configuration
@@ -50,6 +55,48 @@ function saveConfig(config) {
   } catch (error) {
     console.error('Error saving config:', error);
     return false;
+  }
+}
+
+// Send Discord notification
+async function sendDiscordNotification(config, message, isError = false) {
+  if (!config.discordEnabled || !config.discordWebhookURL) {
+    return;
+  }
+
+  try {
+    const webhook = new Webhook(config.discordWebhookURL);
+    
+    // Add custom message if provided
+    let fullMessage = message;
+    if (config.discordCustomMessage && config.discordCustomMessage.trim()) {
+      fullMessage += `\n\n**Custom Message:** ${config.discordCustomMessage}`;
+    }
+    
+    const embed = {
+      title: isError ? '❌ Rust Booter - Error' : '🎮 Rust Booter - Status',
+      description: fullMessage,
+      color: isError ? 0xff0000 : 0x00ff00, // Red for error, green for success
+      timestamp: new Date().toISOString(),
+      footer: {
+        text: 'Rust Booter System'
+      }
+    };
+
+    let content = '';
+    if (config.discordRoleID) {
+      content = `<@&${config.discordRoleID}>`;
+    }
+    
+    // Add custom message to content if provided
+    if (config.discordCustomMessage && config.discordCustomMessage.trim()) {
+      content += (content ? ' ' : '') + config.discordCustomMessage;
+    }
+
+    await webhook.send(content, [embed]);
+    console.log('Discord notification sent successfully');
+  } catch (error) {
+    console.error('Failed to send Discord notification:', error);
   }
 }
 
@@ -145,6 +192,31 @@ app.post('/api/config', (req, res) => {
   }
 });
 
+// Test Discord webhook
+app.post('/api/test-discord', async (req, res) => {
+  try {
+    const { webhookURL, roleID, customMessage } = req.body;
+    
+    if (!webhookURL) {
+      return res.status(400).json({ success: false, error: 'Webhook URL is required' });
+    }
+    
+    const testConfig = {
+      discordEnabled: true,
+      discordWebhookURL: webhookURL,
+      discordRoleID: roleID || '',
+      discordCustomMessage: customMessage || ''
+    };
+    
+    await sendDiscordNotification(testConfig, `🧪 **Discord Test Notification**\n\nThis is a test message from your Rust Booter system!\n\nIf you can see this, your Discord integration is working correctly.`, false);
+    
+    res.json({ success: true, message: 'Discord test notification sent successfully' });
+  } catch (error) {
+    console.error('Discord test failed:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Main boot sequence endpoint
 app.post('/go', async (req, res) => {
   try {
@@ -162,6 +234,9 @@ app.post('/go', async (req, res) => {
     console.log(`Gaming PC: ${config.gamingPCIP} (${config.gamingPCMAC})`);
     console.log(`Rust Server: ${config.rustServerIP}:${config.rustServerPort}`);
     
+    // Send Discord notification - Boot sequence started
+    await sendDiscordNotification(config, `🚀 **Boot sequence started!**\n\n**Gaming PC:** ${config.gamingPCIP}\n**Rust Server:** ${config.rustServerIP}:${config.rustServerPort}\n\nStarting WOL packet...`);
+    
     // Step 1: Send WOL packet
     console.log('Sending WOL packet...');
     await sendWOLPacket(config.gamingPCMAC);
@@ -171,11 +246,17 @@ app.post('/go', async (req, res) => {
     console.log('Waiting for PC to boot...');
     await waitForPCReady(config.gamingPCIP);
     
+    // Send Discord notification - PC is ready
+    await sendDiscordNotification(config, `✅ **Gaming PC is ready!**\n\n**PC IP:** ${config.gamingPCIP}\n\nLaunching Rust game...`);
+    
     // Step 3: Launch game
     console.log('Launching game...');
     const launchResult = await launchGame(config.gamingPCIP, config.rustServerIP, config.rustServerPort);
     console.log('Game launched successfully');
     console.log('Launch result:', launchResult);
+    
+    // Send Discord notification - Boot sequence completed
+    await sendDiscordNotification(config, `🎉 **Boot sequence completed successfully!**\n\n**Rust Server:** ${config.rustServerIP}:${config.rustServerPort}\n**Steam URL:** ${launchResult.steam_url}\n\nGame should be starting now!`);
     
     const responseData = {
       success: true,
@@ -193,6 +274,10 @@ app.post('/go', async (req, res) => {
       stack: error.stack,
       name: error.name
     });
+    
+    // Send Discord notification - Error
+    await sendDiscordNotification(config, `❌ **Boot sequence failed!**\n\n**Error:** ${error.message}\n\nPlease check the system logs for more details.`, true);
+    
     res.status(500).json({
       success: false,
       error: error.message
