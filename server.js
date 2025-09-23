@@ -81,6 +81,9 @@ async function checkPCHealth(pcIP) {
 // Launch game on PC
 async function launchGame(pcIP, serverIP, serverPort) {
   try {
+    console.log(`Sending game launch request to ${pcIP}:5000/game/launch`);
+    console.log(`Request body:`, { server_ip: serverIP, server_port: serverPort });
+    
     const response = await axios.post(`http://${pcIP}:5000/game/launch`, {
       server_ip: serverIP,
       server_port: serverPort
@@ -90,8 +93,12 @@ async function launchGame(pcIP, serverIP, serverPort) {
       },
       timeout: 10000
     });
+    
+    console.log(`Game launch response:`, response.data);
     return response.data;
   } catch (error) {
+    console.error(`Game launch error:`, error.message);
+    console.error(`Full error:`, error);
     throw new Error(`Failed to launch game: ${error.message}`);
   }
 }
@@ -168,6 +175,7 @@ app.post('/go', async (req, res) => {
     console.log('Launching game...');
     const launchResult = await launchGame(config.gamingPCIP, config.rustServerIP, config.rustServerPort);
     console.log('Game launched successfully');
+    console.log('Launch result:', launchResult);
     
     res.json({
       success: true,
@@ -177,6 +185,11 @@ app.post('/go', async (req, res) => {
     
   } catch (error) {
     console.error('Boot sequence failed:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
       error: error.message
