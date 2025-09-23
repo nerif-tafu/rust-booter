@@ -52,32 +52,6 @@ jobs:
     - name: Install dependencies
       run: npm ci --production
       
-    - name: Create deployment package
-      run: |
-        mkdir -p deploy
-        cp -r package.json server.js public deploy/
-        cp -r node_modules deploy/
-        tar -czf rust-booter-deploy.tar.gz -C deploy .
-        
-    - name: Upload deployment artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: rust-booter-deployment
-        path: rust-booter-deploy.tar.gz
-        retention-days: 30
-
-  deploy-to-server:
-    needs: deploy
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
-    steps:
-    - name: Download deployment artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: rust-booter-deployment
-        path: ./deploy
-        
     - name: Deploy to local server
       run: |
         # Create application directory
@@ -95,8 +69,8 @@ jobs:
         # Create new deployment directory
         sudo mkdir -p current
         
-        # Extract new deployment
-        sudo tar -xzf ../../deploy/rust-booter-deploy.tar.gz -C current/
+        # Copy files directly (no tar needed!)
+        sudo cp -r ../package.json ../server.js ../public ../node_modules current/
         
         # Set proper ownership
         sudo chown -R $USER:$USER current/
