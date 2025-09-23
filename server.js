@@ -97,7 +97,7 @@ async function launchGame(pcIP, serverIP, serverPort) {
 }
 
 // Wait for PC to be ready
-async function waitForPCReady(pcIP, maxAttempts = 30, intervalMs = 2000) {
+async function waitForPCReady(pcIP, maxAttempts = 150, intervalMs = 2000) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     console.log(`Health check attempt ${attempt}/${maxAttempts} for ${pcIP}`);
     
