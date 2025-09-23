@@ -70,7 +70,7 @@ jobs:
         sudo mkdir -p current
         
         # Copy files directly (no tar needed!)
-        sudo cp -r ../package.json ../server.js ../public ../node_modules current/
+        sudo cp -r package.json server.js public node_modules current/
         
         # Set proper ownership
         sudo chown -R $USER:$USER current/
