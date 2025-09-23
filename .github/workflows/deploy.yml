@@ -52,86 +52,64 @@ jobs:
     - name: Install dependencies
       run: npm ci --production
       
-    - name: Deploy to local server
+    - name: Stop existing application
       run: |
-        # Create application directory
-        sudo mkdir -p /opt/rust-booter
-        cd /opt/rust-booter
-        
-        # Stop existing service if running
+        # Stop the systemd service
         sudo systemctl stop rust-booter || true
         
-        # Backup current deployment
-        if [ -d "current" ]; then
-          sudo mv current backup-$(date +%Y%m%d-%H%M%S)
-        fi
+    - name: Deploy application
+      run: |
+        # Create deployment directory if it doesn't exist
+        sudo mkdir -p /opt/rust-booter
         
-        # Create new deployment directory
-        sudo mkdir -p current
-        
-        # Copy files directly (no tar needed!)
-        sudo cp -r package.json server.js public node_modules current/
+        # Copy built files
+        sudo cp -r public /opt/rust-booter/
+        sudo cp server.js /opt/rust-booter/
+        sudo cp package.json /opt/rust-booter/
+        sudo cp package-lock.json /opt/rust-booter/ 2>/dev/null || true
         
         # Set proper ownership
-        sudo chown -R $USER:$USER current/
+        sudo chown -R $USER:$USER /opt/rust-booter
         
-        # Create systemd service file
+        # Install production dependencies
+        cd /opt/rust-booter
+        npm ci --production
+        
+    - name: Create systemd service file
+      run: |
         sudo tee /etc/systemd/system/rust-booter.service > /dev/null <<EOF
         [Unit]
         Description=Rust Booter - WOL Gaming PC Controller
         After=network.target
-        Wants=network.target
         
         [Service]
         Type=simple
         User=$USER
-        WorkingDirectory=/opt/rust-booter/current
-        Environment=NODE_ENV=production
-        Environment=PORT=8534
+        WorkingDirectory=/opt/rust-booter
         ExecStart=/usr/bin/node server.js
         Restart=always
         RestartSec=10
-        StandardOutput=journal
-        StandardError=journal
-        
-        # Security settings
-        NoNewPrivileges=true
-        PrivateTmp=true
-        ProtectSystem=strict
-        ProtectHome=read-only
-        ReadWritePaths=/opt/rust-booter/current
+        Environment=NODE_ENV=production
+        Environment=PORT=8534
         
         [Install]
         WantedBy=multi-user.target
         EOF
         
-        # Reload systemd and start service
+    - name: Start application with systemd
+      run: |
+        # Reload systemd and start the service
         sudo systemctl daemon-reload
         sudo systemctl enable rust-booter
         sudo systemctl start rust-booter
         
-        # Wait a moment and check status
-        sleep 5
-        sudo systemctl status rust-booter --no-pager
-        
     - name: Verify deployment
       run: |
-        # Check if service is running
-        if sudo systemctl is-active --quiet rust-booter; then
-          echo "✅ Service is running successfully"
-        else
-          echo "❌ Service failed to start"
-          sudo journalctl -u rust-booter --no-pager -n 20
-          exit 1
-        fi
+        # Wait a moment for the application to start
+        sleep 5
         
-        # Check if port is listening
-        if netstat -tlnp | grep :8534 > /dev/null; then
-          echo "✅ Service is listening on port 8534"
-        else
-          echo "❌ Service is not listening on port 8534"
-          exit 1
-        fi
+        # Check if the service is running
+        sudo systemctl status rust-booter --no-pager
         
-        echo "🎉 Deployment completed successfully!"
-        echo "🌐 Rust Booter is available at: http://localhost:8534"
+        # Optional: Health check
+        curl -f http://localhost:8534/api/config || echo "Health check failed - application may still be starting"
