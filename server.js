@@ -74,15 +74,24 @@ function saveConfig(config) {
 
 // Send Discord notification
 async function sendDiscordNotification(config, message, isError = false) {
-  if (!config.discordEnabled || !config.discordWebhookURL) {
+  console.log('🔍 Discord notification attempt:', {
+    hasWebhookURL: !!config.discordWebhookURL,
+    message: message,
+    isError: isError
+  });
+  
+  if (!config.discordWebhookURL) {
+    console.log('⚠️ Discord notification skipped: No webhook URL configured');
     return;
   }
 
   try {
+    console.log('🔗 Creating Discord webhook client...');
     const webhook = new Webhook(config.discordWebhookURL);
     
     // Use the message as provided
     const fullMessage = message;
+    console.log('📝 Sending Discord message:', fullMessage);
     
     const embed = {
       title: isError ? '❌ Rust Booter - Error' : '🎮 Rust Booter - Status',
@@ -101,6 +110,12 @@ async function sendDiscordNotification(config, message, isError = false) {
     console.log('Discord notification sent successfully');
   } catch (error) {
     console.error('Failed to send Discord notification:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      response: error.response ? error.response.data : 'No response data'
+    });
   }
 }
 
@@ -854,11 +869,19 @@ app.post('/api/test-discord', async (req, res) => {
       discordWebhookURL: webhookURL
     };
     
+    console.log('🧪 Testing Discord webhook:', webhookURL);
     await sendDiscordNotification(testConfig, `🧪 **Discord Test Notification**\n\nThis is a test message from your Rust Booter system!\n\nIf you can see this, your Discord integration is working correctly.`, false);
     
     res.json({ success: true, message: 'Discord test notification sent successfully' });
   } catch (error) {
     console.error('Discord test failed:', error);
+    console.error('Discord test error details:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      response: error.response ? error.response.data : 'No response data',
+      webhookURL: webhookURL
+    });
     res.status(500).json({ success: false, error: error.message });
   }
 });
