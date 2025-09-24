@@ -110,6 +110,26 @@
             box-shadow: none;
         }
 
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
         .status {
             margin-top: 20px;
             padding: 15px;
@@ -168,9 +188,15 @@
 
         .config-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
             margin-bottom: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .config-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
 
         @media (max-width: 768px) {
@@ -178,89 +204,312 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .rust-step {
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+        }
+
+        .rust-step h4 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+
+        .rust-step p {
+            margin: 0 0 15px 0;
+            color: #6c757d;
+        }
+
+        .smart-alarm-card {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .smart-alarm-card h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+
+        .smart-alarm-card .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .smart-alarm-card .form-row label {
+            min-width: 120px;
+            margin-bottom: 0;
+        }
+
+        .smart-alarm-card .form-row input,
+        .smart-alarm-card .form-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .smart-alarm-card .checkbox-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .smart-alarm-card .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .smart-alarm-card .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .smart-alarm-card .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .smart-alarm-card .actions button {
+            padding: 8px 16px;
+            font-size: 14px;
+            flex: none;
+        }
+
+        /* Tab Styles */
+        .tab-container {
+            margin-bottom: 20px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #6c757d;
+        }
+
+        .tab-button:hover {
+            color: #495057;
+            background: #f8f9fa;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎮 Rust Booter</h1>
         
-        <div class="config-grid">
-            <div class="config-section">
-                <h3>🎮 Gaming Configuration</h3>
-                
-                <div class="form-group">
-                    <label for="gamingPCIP">Gaming PC IP Address:</label>
-                    <input type="text" id="gamingPCIP" placeholder="192.168.1.100" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="gamingPCMAC">Gaming PC MAC Address:</label>
-                    <input type="text" id="gamingPCMAC" placeholder="AA:BB:CC:DD:EE:FF" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="rustServerIP">Rust Server IP:</label>
-                    <input type="text" id="rustServerIP" placeholder="192.168.1.200" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="rustServerPort">Rust Server Port:</label>
-                    <input type="number" id="rustServerPort" placeholder="28015" value="28015" required>
-                </div>
+        <!-- Tab Navigation -->
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="switchTab('settings')">⚙️ Settings</button>
+                <button class="tab-button" onclick="switchTab('smart-alarms')">🚨 Smart Alarms</button>
+                <button class="tab-button" onclick="switchTab('actions')">🎯 Actions</button>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content active">
+            <div class="config-grid">
+        <div class="config-section">
+                    <h3>🎮 Gaming Configuration</h3>
+            
+            <div class="form-group">
+                <label for="gamingPCIP">Gaming PC IP Address:</label>
+                <input type="text" id="gamingPCIP" placeholder="192.168.1.100" required>
             </div>
             
-            <div class="config-section">
-                <h3>💬 Discord Notifications</h3>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="discordEnabled" onchange="toggleDiscordSettings()">
-                        Enable Discord Notifications
-                    </label>
-                </div>
-                
-                <div id="discordSettings" style="display: none;">
+            <div class="form-group">
+                <label for="gamingPCMAC">Gaming PC MAC Address:</label>
+                <input type="text" id="gamingPCMAC" placeholder="AA:BB:CC:DD:EE:FF" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="rustServerIP">Rust Server IP:</label>
+                <input type="text" id="rustServerIP" placeholder="192.168.1.200" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="rustServerPort">Rust Server Port:</label>
+                <input type="number" id="rustServerPort" placeholder="28015" value="28015" required>
+                    </div>
+            </div>
+            
+                <div class="config-section">
+                    <h3>💬 Discord Notifications</h3>
+                    
+                    <div id="discordSettings">
                     <div class="form-group">
                         <label for="discordWebhookURL">Discord Webhook URL:</label>
                         <input type="text" id="discordWebhookURL" placeholder="https://discord.com/api/webhooks/...">
                         <small style="color: #666; font-size: 0.9em;">Get this from your Discord server settings > Integrations > Webhooks</small>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="discordRoleID">Discord Role ID (optional):</label>
-                        <input type="text" id="discordRoleID" placeholder="123456789012345678">
-                        <small style="color: #666; font-size: 0.9em;">Right-click a role in Discord and copy ID to mention it</small>
                     </div>
+                </div>
+                
+                <div class="config-section">
+                    <h3>🎮 Rust+ Notifications</h3>
                     
-                    <div class="form-group">
-                        <label for="discordCustomMessage">Custom Message (optional):</label>
-                        <textarea id="discordCustomMessage" placeholder="Enter a custom message to include with Discord notifications..." rows="3" style="width: 100%; padding: 12px 15px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 16px; transition: border-color 0.3s ease; resize: vertical;"></textarea>
-                        <small style="color: #666; font-size: 0.9em;">This message will be added to all Discord notifications</small>
+                    <div id="rustPlusSettings">
+                        <!-- Step 1: Update Rust+ Token -->
+                        <div id="step1" class="rust-step">
+                            <h4>Step 1: Update Rust+ Token</h4>
+                            <p>Use your Firefox extension to get a fresh Rust+ token:</p>
+            <div class="button-group">
+                                <button type="button" class="btn-primary" onclick="updateRustPlusToken()" id="updateTokenBtn">
+                                    🔄 Update Rust+ Token
+                                </button>
+                            </div>
+                            <div id="tokenStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
+                                <div id="tokenInfo" style="color: #6c757d; font-style: italic;">No token stored</div>
+            </div>
+        </div>
+        
+                        <!-- Step 2: Pair with Rust Server -->
+                        <div id="step2" class="rust-step" style="display: none;">
+                            <h4>Step 2: Pair with Rust Server</h4>
+                            <p>Start FCM listening and pair with your Rust server:</p>
+        <div class="button-group">
+                                <button type="button" class="btn-primary" onclick="startFCMPairing()" id="startFCMPairingBtn">
+                                    🔗 Start FCM Pairing
+            </button>
+                            </div>
+                            <div id="fcmStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
+                                <div id="fcmInfo" style="color: #6c757d; font-style: italic;">FCM not started</div>
+                            </div>
+                            <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                                After clicking the button, go to your Rust server and pair with it. The connection details will be automatically captured.
+                            </p>
+                        </div>
+
+                        <!-- Step 3: Status and Test -->
+                        <div id="step3" class="rust-step" style="display: none;">
+                            <h4>Step 3: Connected & Ready</h4>
+                            <div id="serverStatus" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
+                                <div id="serverInfo" style="color: #6c757d; font-style: italic;">No server paired</div>
+                            </div>
+                            <div class="button-group">
+                                <button type="button" class="btn-secondary" onclick="testRustPlus()" id="testRustPlusBtn" disabled>Test Rust+ Connection</button>
+                                <button type="button" class="btn-secondary" onclick="restartPairing()" id="restartPairingBtn">🔄 Restart Pairing</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden fields for sensitive data -->
+                        <input type="hidden" id="rustPlusServerIP">
+                        <input type="hidden" id="rustPlusServerPort" value="28082">
+                        <input type="hidden" id="rustPlusPlayerId">
+                        <input type="hidden" id="rustPlusPlayerToken">
                     </div>
-                    
-                    <div class="button-group">
-                        <button type="button" class="btn-secondary" onclick="testDiscord()" id="testDiscordBtn" disabled>Test Discord</button>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="btn-secondary" onclick="saveConfig()">Save Config</button>
+            </div>
+        </div>
+        
+        <!-- Smart Alarms Tab -->
+        <div id="smart-alarms-tab" class="tab-content">
+            <div class="config-section">
+                <h3>🚨 Smart Alarms</h3>
+                <p style="color: #6c757d; margin-bottom: 20px;">List of smart alarms that have been paired with your Rust server.</p>
+                
+                <!-- FCM Status -->
+                <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <h4 style="margin: 0 0 10px 0; color: #495057;">📡 FCM Listener Status</h4>
+                    <div id="fcmStatusInfo" style="color: #6c757d; font-style: italic;">Checking FCM status...</div>
+                    <div class="button-group" style="margin-top: 10px;">
+                        <button type="button" class="btn-primary" onclick="startFCMListener()" id="startFCMBtn">🔧 Start FCM Listener</button>
                     </div>
+                </div>
+                
+                <div id="smartAlarmsList">
+                    <!-- Smart alarms will be dynamically added here -->
                 </div>
             </div>
         </div>
         
-        <div class="button-group">
-            <button type="button" class="btn-secondary" onclick="saveConfig()">Save Config</button>
-        </div>
-        
-        <div class="button-group">
-            <button type="button" class="btn-primary" onclick="startBootSequence()" id="bootButton">
-                🚀 Start Boot Sequence
-            </button>
+        <!-- Actions Tab -->
+        <div id="actions-tab" class="tab-content">
+            <div class="config-section">
+                <h3>🎯 Actions</h3>
+                <p style="color: #6c757d; margin-bottom: 20px;">Configure automatic actions when specific messages are received from Rust+ (team messages, entity changes, etc.). All Rust+ messages are logged to the server console.</p>
+                
+                
+                <div id="actionsList">
+                    <!-- Actions will be dynamically added here -->
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" class="btn-primary" onclick="addAction()">➕ Add Action</button>
+                </div>
+            </div>
+            
+            <div class="config-section">
+                <h3>🛠️ Manual Actions</h3>
+                <p style="color: #6c757d; margin-bottom: 20px;">Manual actions and system controls.</p>
+                
+                <div class="button-group">
+                    <button type="button" class="btn-primary" onclick="wakeUpPC()">🖥️ Wake Up PC</button>
+                    <button type="button" class="btn-secondary" onclick="testDiscord()">💬 Test Discord</button>
+                    <button type="button" class="btn-secondary" onclick="testRustPlus()">🎮 Test Rust+</button>
+                </div>
+            </div>
         </div>
         
         <div id="status" class="status"></div>
     </div>
 
-    <script>
+    <script type="module">
+        import { fetchRustPlusData, getStoredRustPlusData } from './fetch-rustplus-data.js';
+        
         // Load configuration on page load
-        document.addEventListener('DOMContentLoaded', loadConfig);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            loadTabFromHash();
+            updateFCMStatus();
+            loadActions();
+            startRustPlusStatusUpdates();
+        });
 
         async function loadConfig() {
             try {
@@ -273,12 +522,18 @@
                 document.getElementById('rustServerPort').value = config.rustServerPort || 28015;
                 
                 // Load Discord settings
-                document.getElementById('discordEnabled').checked = config.discordEnabled || false;
                 document.getElementById('discordWebhookURL').value = config.discordWebhookURL || '';
-                document.getElementById('discordRoleID').value = config.discordRoleID || '';
-                document.getElementById('discordCustomMessage').value = config.discordCustomMessage || '';
                 
-                toggleDiscordSettings();
+                // Update status displays
+                updateFCMStatus(config);
+                updateServerStatus(config);
+                updateTokenStatus(config);
+                
+                // Show appropriate step based on current state
+                updateRustPlusSteps(config);
+                
+                // Load smart alarms
+                loadSmartAlarms();
             } catch (error) {
                 showStatus('Failed to load configuration: ' + error.message, 'error');
             }
@@ -290,10 +545,11 @@
                 gamingPCMAC: document.getElementById('gamingPCMAC').value.trim(),
                 rustServerIP: document.getElementById('rustServerIP').value.trim(),
                 rustServerPort: parseInt(document.getElementById('rustServerPort').value) || 28015,
-                discordEnabled: document.getElementById('discordEnabled').checked,
                 discordWebhookURL: document.getElementById('discordWebhookURL').value.trim(),
-                discordRoleID: document.getElementById('discordRoleID').value.trim(),
-                discordCustomMessage: document.getElementById('discordCustomMessage').value.trim()
+                rustPlusServerIP: document.getElementById('rustPlusServerIP').value.trim(),
+                rustPlusServerPort: parseInt(document.getElementById('rustPlusServerPort').value) || 28082,
+                rustPlusPlayerId: document.getElementById('rustPlusPlayerId').value.trim(),
+                rustPlusPlayerToken: document.getElementById('rustPlusPlayerToken').value.trim()
             };
 
             // Basic validation
@@ -323,99 +579,467 @@
             }
         }
 
-        async function startBootSequence() {
-            const bootButton = document.getElementById('bootButton');
-            const originalText = bootButton.innerHTML;
+
+
+
+
+        async function updateRustPlusToken() {
+            const updateButton = document.getElementById('updateTokenBtn');
+            const originalText = updateButton.innerHTML;
             
             // Disable button and show loading
-            bootButton.disabled = true;
-            bootButton.innerHTML = '<div class="loading"></div>Starting...';
+            updateButton.disabled = true;
+            updateButton.innerHTML = '<div class="loading"></div>Fetching Token...';
             
-            showStatus('Starting boot sequence...', 'info');
-            
-            // Show progress updates
-            const progressInterval = setInterval(() => {
-                showStatus('Boot sequence in progress... This may take 1-2 minutes. Please wait.', 'info');
-            }, 10000); // Update every 10 seconds
+            showStatus('Opening Rust+ login...', 'info');
 
             try {
-                console.log('Sending request to /go endpoint...');
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+                const data = await fetchRustPlusData();
                 
-                const response = await fetch('/go', {
+                if (data && data.SteamId && data.Token) {
+                    // Update the hidden fields with the new data
+                    document.getElementById('rustPlusPlayerId').value = data.SteamId;
+                    document.getElementById('rustPlusPlayerToken').value = data.Token;
+                    
+                    // Save the config with the new token
+                    await saveConfig();
+                    
+                    showStatus('✅ Rust+ token updated successfully!', 'success');
+                    
+                    // Reload config to update status and progress to next step
+                    loadConfig();
+                } else {
+                    showStatus('❌ Failed to get Rust+ token from extension', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to update Rust+ token: ' + error.message, 'error');
+            } finally {
+                // Re-enable button
+                updateButton.disabled = false;
+                updateButton.innerHTML = originalText;
+            }
+        }
+
+        let pairingPollInterval = null;
+
+        function startPairingPolling() {
+            // Clear any existing polling
+            if (pairingPollInterval) {
+                clearInterval(pairingPollInterval);
+            }
+            
+            let pollCount = 0;
+            const maxPolls = 60; // 2 minutes max (2 seconds * 60)
+            
+            pairingPollInterval = setInterval(async () => {
+                pollCount++;
+                
+                try {
+                    const response = await fetch('/api/config');
+                    const config = await response.json();
+                    
+                    // Check if server has been paired
+                    if (config.rustPlusServerIP) {
+                        clearInterval(pairingPollInterval);
+                        pairingPollInterval = null;
+                        showStatus('✅ Server paired successfully!', 'success');
+                        // Reload config to update UI and progress to step 3
+                        loadConfig();
+                        return;
+                    }
+                    
+                    // Timeout after max polls
+                    if (pollCount >= maxPolls) {
+                        clearInterval(pairingPollInterval);
+                        pairingPollInterval = null;
+                        showStatus('⏰ Pairing timeout - please try again', 'error');
+                    }
+                } catch (error) {
+                    if (pollCount >= maxPolls) {
+                        clearInterval(pairingPollInterval);
+                        pairingPollInterval = null;
+                        showStatus('❌ Error checking pairing status', 'error');
+                    }
+                }
+            }, 2000); // Poll every 2 seconds
+        }
+
+        // Smart Alarm Functions
+        let smartAlarms = [];
+        let detectedEntities = {};
+        let actions = [];
+
+        async function loadSmartAlarms() {
+            try {
+                const entitiesResponse = await fetch('/api/detected-entities');
+                const entitiesResult = await entitiesResponse.json();
+                
+                if (entitiesResult.success) {
+                    detectedEntities = entitiesResult.entities || {};
+                }
+                
+                renderSmartAlarms();
+                // Also refresh actions to update smart alarm dropdowns
+                if (actions.length > 0) {
+                    renderActions();
+                }
+            } catch (error) {
+                console.error('Failed to load smart alarms:', error);
+            }
+        }
+
+        async function refreshDetectedEntities() {
+            try {
+                const response = await fetch('/api/detected-entities');
+                const result = await response.json();
+                
+                if (result.success) {
+                    detectedEntities = result.entities || {};
+                    renderSmartAlarms();
+                    showStatus('✅ Entities refreshed', 'success');
+                } else {
+                    showStatus('❌ Failed to refresh entities: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to refresh detected entities:', error);
+                showStatus('❌ Failed to refresh entities: ' + error.message, 'error');
+            }
+        }
+
+        function renderSmartAlarms() {
+            const container = document.getElementById('smartAlarmsList');
+            container.innerHTML = '';
+
+            // Use detectedEntities instead of smartAlarms
+            const entities = Object.values(detectedEntities);
+            
+            if (entities.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; font-style: italic; text-align: center; padding: 20px;">No smart alarms paired yet. Pair with smart alarms in your Rust server to see them here.</p>';
+                return;
+            }
+
+            entities.forEach(entity => {
+                const alarmCard = createSmartAlarmListCard(entity);
+                container.appendChild(alarmCard);
+            });
+        }
+
+        function createSmartAlarmListCard(entity) {
+            const card = document.createElement('div');
+            card.className = 'smart-alarm-card';
+            card.id = `entity-${entity.id}`;
+
+            card.innerHTML = `
+                <div class="form-row">
+                    <label>Name:</label>
+                    <input type="text" value="${entity.name || 'Unnamed Device'}" onchange="updateEntityName('${entity.id}', this.value)" style="flex: 1; margin-left: 10px;">
+                </div>
+                <div class="form-row">
+                    <label>Entity ID:</label>
+                    <span style="font-family: monospace; background: #f8f9fa; padding: 5px 10px; border-radius: 4px;">${entity.id || 'Unknown'}</span>
+                </div>
+                <div class="form-row">
+                    <label>Type:</label>
+                    <span style="color: #6c757d;">${entity.type || 'Unknown'}</span>
+                </div>
+                <div class="form-row">
+                    <label>Status:</label>
+                    <span style="color: ${entity.lastValue ? '#28a745' : '#6c757d'}; font-weight: 500;">
+                        ${entity.lastValue ? 'Active' : 'Inactive'}
+                    </span>
+                </div>
+                <div class="form-row">
+                    <label>Last Changed:</label>
+                    <span style="color: #6c757d;">${entity.lastChanged ? new Date(entity.lastChanged).toLocaleString() : 'Never'}</span>
+                </div>
+                <div class="form-row">
+                    <label>Paired:</label>
+                    <span style="color: ${entity.paired ? '#28a745' : '#6c757d'}; font-weight: 500;">
+                        ${entity.paired ? 'Yes' : 'No'}
+                    </span>
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn-secondary" onclick="deleteEntity('${entity.id}')">🗑️ Delete</button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function createSmartAlarmCard(alarm) {
+            const card = document.createElement('div');
+            card.className = 'smart-alarm-card';
+            card.id = `alarm-${alarm.id}`;
+
+            card.innerHTML = `
+                <h4>${alarm.name}</h4>
+                <div class="form-row">
+                    <label>Name:</label>
+                    <input type="text" value="${alarm.name}" onchange="updateAlarmField('${alarm.id}', 'name', this.value)">
+                </div>
+                <div class="form-row">
+                    <label>Message Filter:</label>
+                    <input type="text" value="${alarm.messageFilter || ''}" onchange="updateAlarmField('${alarm.id}', 'messageFilter', this.value)" placeholder="e.g., 'raid', 'door', 'alarm' - leave empty to trigger on all messages">
+                </div>
+                <div class="checkbox-row">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="wakePC-${alarm.id}" ${alarm.wakePC ? 'checked' : ''} onchange="updateAlarmField('${alarm.id}', 'wakePC', this.checked)">
+                        <label for="wakePC-${alarm.id}">Wake PC</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="sendDiscord-${alarm.id}" ${alarm.sendDiscord ? 'checked' : ''} onchange="updateAlarmField('${alarm.id}', 'sendDiscord', this.checked)">
+                        <label for="sendDiscord-${alarm.id}">Send Discord</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Discord Message:</label>
+                    <input type="text" value="${alarm.discordMessage}" onchange="updateAlarmField('${alarm.id}', 'discordMessage', this.value)" placeholder="Custom Discord message">
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn-secondary ${alarm.enabled ? 'btn-success' : 'btn-danger'}" onclick="toggleAlarmEnabled('${alarm.id}')">
+                        ${alarm.enabled ? '✅ Enabled' : '❌ Disabled'}
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="deleteSmartAlarm('${alarm.id}')">🗑️ Delete</button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        async function addSmartAlarm() {
+            try {
+                const response = await fetch('/api/smart-alarms', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    signal: controller.signal
+                    body: JSON.stringify({
+                        name: 'New Smart Alarm',
+                        messageFilter: '',
+                        enabled: true,
+                        wakePC: false,
+                        sendDiscord: false,
+                        discordMessage: ''
+                    })
                 });
-                
-                clearTimeout(timeoutId);
 
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                // Check if response is actually JSON
-                const contentType = response.headers.get('content-type');
-                console.log('Content-Type:', contentType);
-                
-                if (!contentType || !contentType.includes('application/json')) {
-                    const textResponse = await response.text();
-                    console.error('Non-JSON response received:', textResponse);
-                    throw new Error('Server returned non-JSON response: ' + textResponse);
-                }
-                
-                let result;
-                try {
-                    result = await response.json();
-                    console.log('Response data:', result);
-                } catch (jsonError) {
-                    console.error('JSON parsing error:', jsonError);
-                    const textResponse = await response.text();
-                    console.error('Raw response text:', textResponse);
-                    throw new Error('Failed to parse JSON response: ' + jsonError.message + '. Raw response: ' + textResponse);
-                }
-                
+                const result = await response.json();
                 if (result.success) {
-                    showStatus('✅ Boot sequence completed successfully!', 'success');
+                    await loadSmartAlarms();
+                    showStatus('✅ Smart alarm added successfully', 'success');
                 } else {
-                    showStatus('❌ Boot sequence failed: ' + result.error, 'error');
+                    showStatus('❌ Failed to add smart alarm: ' + result.error, 'error');
                 }
             } catch (error) {
-                console.error('Fetch error:', error);
-                showStatus('❌ Boot sequence failed: ' + error.message, 'error');
-            } finally {
-                // Clear progress updates
-                clearInterval(progressInterval);
+                showStatus('❌ Failed to add smart alarm: ' + error.message, 'error');
+            }
+        }
+
+        async function updateAlarmField(alarmId, field, value) {
+            try {
+                const alarm = smartAlarms.find(a => a.id === alarmId);
+                if (!alarm) return;
+
+                const updateData = { [field]: value };
                 
-                // Re-enable button
-                bootButton.disabled = false;
-                bootButton.innerHTML = originalText;
+                const response = await fetch(`/api/smart-alarms/${alarmId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Update local array
+                    const alarmIndex = smartAlarms.findIndex(a => a.id === alarmId);
+                    if (alarmIndex !== -1) {
+                        smartAlarms[alarmIndex] = result.alarm;
+                    }
+                } else {
+                    showStatus('❌ Failed to update smart alarm: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to update smart alarm: ' + error.message, 'error');
             }
         }
 
-        function toggleDiscordSettings() {
-            const discordEnabled = document.getElementById('discordEnabled').checked;
-            const discordSettings = document.getElementById('discordSettings');
-            const testDiscordBtn = document.getElementById('testDiscordBtn');
+        async function toggleAlarmEnabled(alarmId) {
+            try {
+                const alarm = smartAlarms.find(a => a.id === alarmId);
+                if (!alarm) return;
+
+                const newEnabledState = !alarm.enabled;
+                
+                const response = await fetch(`/api/smart-alarms/${alarmId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ enabled: newEnabledState })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Update local array
+                    const alarmIndex = smartAlarms.findIndex(a => a.id === alarmId);
+                    if (alarmIndex !== -1) {
+                        smartAlarms[alarmIndex] = result.alarm;
+                    }
+                    // Re-render the specific alarm card
+                    renderSmartAlarms();
+                    showStatus(`✅ Smart alarm ${newEnabledState ? 'enabled' : 'disabled'} successfully`, 'success');
+                } else {
+                    showStatus('❌ Failed to toggle smart alarm: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to toggle smart alarm: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteSmartAlarm(alarmId) {
+            if (!confirm('Are you sure you want to delete this smart alarm?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/smart-alarms/${alarmId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await loadSmartAlarms();
+                    showStatus('✅ Smart alarm deleted successfully', 'success');
+                } else {
+                    showStatus('❌ Failed to delete smart alarm: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to delete smart alarm: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteEntity(entityId) {
+            if (!confirm('Are you sure you want to remove this entity from the list?')) {
+                return;
+            }
+
+            try {
+                // Remove from local detectedEntities
+                delete detectedEntities[entityId];
+                
+                // Update the display
+                renderSmartAlarms();
+                
+                showStatus('✅ Entity removed from list', 'success');
+            } catch (error) {
+                showStatus('❌ Failed to delete entity: ' + error.message, 'error');
+            }
+        }
+
+        async function updateEntityName(entityId, newName) {
+            try {
+                const response = await fetch(`/api/detected-entities/${entityId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: newName
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update the local object
+                    if (detectedEntities[entityId]) {
+                        detectedEntities[entityId].name = newName;
+                    }
+                    
+                    // Re-render actions to update smart alarm dropdowns
+                    renderActions();
+                    
+                    showStatus('✅ Entity name updated', 'success');
+                } else {
+                    showStatus('❌ Failed to update entity name: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to update entity name:', error);
+                showStatus('❌ Failed to update entity name: ' + error.message, 'error');
+            }
+        }
+
+        // Tab Functions
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
             
-            if (discordEnabled) {
-                discordSettings.style.display = 'block';
-                testDiscordBtn.disabled = false;
-            } else {
-                discordSettings.style.display = 'none';
-                testDiscordBtn.disabled = true;
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Update URL hash
+            window.location.hash = tabName;
+        }
+
+        // Load tab from URL hash on page load
+        function loadTabFromHash() {
+            const hash = window.location.hash.substring(1); // Remove the # symbol
+            const validTabs = ['settings', 'smart-alarms', 'actions'];
+            
+            if (validTabs.includes(hash)) {
+                // Find the button for this tab and click it
+                const tabButton = document.querySelector(`[onclick="switchTab('${hash}')"]`);
+                if (tabButton) {
+                    tabButton.click();
+                }
             }
         }
 
+        // Listen for hash changes (back/forward buttons)
+        window.addEventListener('hashchange', function() {
+            loadTabFromHash();
+        });
+
+        // Wake Up PC Function
+        async function wakeUpPC() {
+            try {
+                const response = await fetch('/go', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('✅ PC wake sequence completed successfully!', 'success');
+                } else {
+                    showStatus('❌ PC wake sequence failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ PC wake sequence failed: ' + error.message, 'error');
+            }
+        }
+
+        // Test Discord Function
         async function testDiscord() {
             const webhookURL = document.getElementById('discordWebhookURL').value.trim();
-            const roleID = document.getElementById('discordRoleID').value.trim();
-            const customMessage = document.getElementById('discordCustomMessage').value.trim();
             
             if (!webhookURL) {
-                showStatus('Please enter a Discord webhook URL', 'error');
+                showStatus('Please enter a Discord webhook URL in Settings', 'error');
                 return;
             }
 
@@ -426,9 +1050,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        webhookURL: webhookURL,
-                        roleID: roleID,
-                        customMessage: customMessage
+                        webhookURL: webhookURL
                     })
                 });
 
@@ -441,6 +1063,645 @@
                 }
             } catch (error) {
                 showStatus('❌ Discord test failed: ' + error.message, 'error');
+            }
+        }
+
+        // FCM Status Functions
+        async function updateFCMStatus() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                const fcmStatusElement = document.getElementById('fcmStatusInfo');
+                const startFCMBtn = document.getElementById('startFCMBtn');
+                
+                if (config.fcmCredentials && config.fcmCredentials.fcm && config.fcmCredentials.fcm.token) {
+                    fcmStatusElement.innerHTML = '✅ FCM credentials available - Listener should be running';
+                    fcmStatusElement.style.color = '#28a745';
+                    startFCMBtn.textContent = '🔄 Restart FCM Listener';
+                } else {
+                    fcmStatusElement.innerHTML = '⚠️ No FCM credentials found - Please update Rust+ token first';
+                    fcmStatusElement.style.color = '#dc3545';
+                    startFCMBtn.textContent = '🔧 Start FCM Listener';
+                }
+            } catch (error) {
+                console.error('Failed to update FCM status:', error);
+                const fcmStatusElement = document.getElementById('fcmStatusInfo');
+                fcmStatusElement.innerHTML = '❌ Failed to check FCM status';
+                fcmStatusElement.style.color = '#dc3545';
+            }
+        }
+
+        async function startFCMListener() {
+            try {
+                const startFCMBtn = document.getElementById('startFCMBtn');
+                const fcmStatusElement = document.getElementById('fcmStatusInfo');
+                
+                startFCMBtn.disabled = true;
+                startFCMBtn.textContent = '⏳ Starting FCM...';
+                fcmStatusElement.innerHTML = '⏳ Starting FCM listener...';
+                fcmStatusElement.style.color = '#6c757d';
+                
+                const response = await fetch('/api/rust-plus/start-fcm-listen', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    fcmStatusElement.innerHTML = '✅ FCM listener started - Waiting for pairing notifications...';
+                    fcmStatusElement.style.color = '#28a745';
+                    showStatus('✅ FCM listener started successfully', 'success');
+                } else {
+                    fcmStatusElement.innerHTML = '❌ Failed to start FCM listener: ' + result.error;
+                    fcmStatusElement.style.color = '#dc3545';
+                    showStatus('❌ Failed to start FCM listener: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to start FCM listener:', error);
+                const fcmStatusElement = document.getElementById('fcmStatusInfo');
+                fcmStatusElement.innerHTML = '❌ Failed to start FCM listener: ' + error.message;
+                fcmStatusElement.style.color = '#dc3545';
+                showStatus('❌ Failed to start FCM listener: ' + error.message, 'error');
+            } finally {
+                const startFCMBtn = document.getElementById('startFCMBtn');
+                startFCMBtn.disabled = false;
+                startFCMBtn.textContent = '🔄 Restart FCM Listener';
+            }
+        }
+
+        // Actions Functions
+        async function addAction() {
+            try {
+                const response = await fetch('/api/smart-alarms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'New Action',
+                        enabled: true,
+                        wakePC: false,
+                        sendDiscord: false,
+                        discordMessage: '',
+                        entityId: '',
+                        triggerOnActivation: true
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('✅ Action created successfully', 'success');
+                    await loadActions();
+                } else {
+                    showStatus('❌ Failed to create action: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to create action: ' + error.message, 'error');
+            }
+        }
+
+        async function loadActions() {
+            try {
+                // Load both smart alarms and detected entities
+                const [alarmsResponse, entitiesResponse] = await Promise.all([
+                    fetch('/api/smart-alarms'),
+                    fetch('/api/detected-entities')
+                ]);
+                
+                const alarmsResult = await alarmsResponse.json();
+                const entitiesResult = await entitiesResponse.json();
+                
+                if (alarmsResult.success) {
+                    actions = alarmsResult.smartAlarms || [];
+                }
+                
+                if (entitiesResult.success) {
+                    detectedEntities = entitiesResult.entities || {};
+                }
+                
+                renderActions();
+            } catch (error) {
+                console.error('Failed to load actions:', error);
+            }
+        }
+
+        function renderActions() {
+            const container = document.getElementById('actionsList');
+            container.innerHTML = '';
+
+            if (actions.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; font-style: italic; text-align: center; padding: 20px;">No actions configured yet. Click "Add Action" to create one.</p>';
+                return;
+            }
+
+            actions.forEach(action => {
+                const actionCard = createActionCard(action);
+                container.appendChild(actionCard);
+            });
+        }
+
+        function createActionCard(action) {
+            const card = document.createElement('div');
+            card.className = 'smart-alarm-card';
+            card.id = `action-${action.id}`;
+
+            // Create smart alarm dropdown options
+            let smartAlarmOptions = '<option value="">-- Select a Smart Alarm --</option>';
+            Object.values(detectedEntities).forEach(entity => {
+                // Convert both to strings for comparison to handle type mismatches
+                const selected = String(entity.id) === String(action.entityId) ? 'selected' : '';
+                smartAlarmOptions += `<option value="${entity.id}" ${selected}>${entity.name || 'Unnamed Device'} (ID: ${entity.id})</option>`;
+            });
+            
+            
+
+            card.innerHTML = `
+                <h4>${action.name}</h4>
+                <div class="form-row">
+                    <label>Name:</label>
+                    <input type="text" value="${action.name}" onchange="updateActionField('${action.id}', 'name', this.value)">
+                </div>
+                <div class="form-row">
+                    <label>Smart Alarm:</label>
+                    <select onchange="updateActionField('${action.id}', 'entityId', this.value)" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        ${smartAlarmOptions}
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Trigger On:</label>
+                    <select onchange="updateActionField('${action.id}', 'triggerOnActivation', this.value === 'activation')" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="activation" ${action.triggerOnActivation === true ? 'selected' : ''}>Activation (when alarm turns ON)</option>
+                        <option value="deactivation" ${action.triggerOnActivation === false ? 'selected' : ''}>Deactivation (when alarm turns OFF)</option>
+                    </select>
+                    <!-- Debug: ${JSON.stringify({triggerOnActivation: action.triggerOnActivation, type: typeof action.triggerOnActivation})} -->
+                </div>
+                <div class="checkbox-row">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="wakePC-${action.id}" ${action.wakePC ? 'checked' : ''} onchange="updateActionField('${action.id}', 'wakePC', this.checked)">
+                        <label for="wakePC-${action.id}">Wake PC</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="sendDiscord-${action.id}" ${action.sendDiscord ? 'checked' : ''} onchange="updateActionField('${action.id}', 'sendDiscord', this.checked)">
+                        <label for="sendDiscord-${action.id}">Send Discord</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Discord Message:</label>
+                    <input type="text" value="${action.discordMessage}" onchange="updateActionField('${action.id}', 'discordMessage', this.value)" placeholder="Custom Discord message">
+                    <div style="font-size: 12px; color: #6c757d; margin-top: 5px; line-height: 1.4;">
+                        💡 <strong>Tip:</strong> To tag users use <code>&lt;@USER_ID&gt;</code>, to tag roles use <code>&lt;@&ROLE_ID&gt;</code><br>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn-secondary" onclick="testAction('${action.id}')">🧪 Test</button>
+                    <button type="button" class="btn-secondary" onclick="deleteAction('${action.id}')">🗑️ Delete</button>
+                    <button type="button" class="btn-secondary ${action.enabled ? 'btn-success' : 'btn-danger'}" onclick="toggleActionEnabled('${action.id}')">
+                        ${action.enabled ? '✅ Enabled' : '❌ Disabled'}
+                    </button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        async function updateActionField(actionId, field, value) {
+            try {
+                const response = await fetch(`/api/smart-alarms/${actionId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        [field]: value
+                    })
+                });
+                
+                // Debug logging for triggerOnActivation
+                if (field === 'triggerOnActivation') {
+                    console.log(`🔍 Frontend Debug: Setting triggerOnActivation to ${value} for action ${actionId}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('✅ Action updated', 'success');
+                } else {
+                    showStatus('❌ Failed to update action: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to update action: ' + error.message, 'error');
+            }
+        }
+
+        async function toggleActionEnabled(actionId) {
+            try {
+                const action = actions.find(a => a.id === actionId);
+                if (!action) return;
+
+                const response = await fetch(`/api/smart-alarms/${actionId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        enabled: !action.enabled
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('✅ Action updated', 'success');
+                    await loadActions();
+                } else {
+                    showStatus('❌ Failed to update action: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to update action: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteAction(actionId) {
+            if (!confirm('Are you sure you want to delete this action?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/smart-alarms/${actionId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('✅ Action deleted successfully', 'success');
+                    await loadActions();
+                } else {
+                    showStatus('❌ Failed to delete action: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Failed to delete action: ' + error.message, 'error');
+            }
+        }
+
+        async function testAction(actionId) {
+            try {
+                showStatus('🧪 Testing action...', 'info');
+                
+                const response = await fetch(`/api/test-action/${actionId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showStatus('✅ Action test completed successfully!', 'success');
+                } else {
+                    showStatus('❌ Action test failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Action test failed: ' + error.message, 'error');
+            }
+        }
+
+
+        // Make functions globally accessible
+        window.updateRustPlusToken = updateRustPlusToken;
+        window.startFCMPairing = startFCMPairing;
+        window.testRustPlus = testRustPlus;
+        window.restartPairing = restartPairing;
+        window.saveConfig = saveConfig;
+        window.addSmartAlarm = addSmartAlarm;
+        window.updateAlarmField = updateAlarmField;
+        window.toggleAlarmEnabled = toggleAlarmEnabled;
+        window.deleteSmartAlarm = deleteSmartAlarm;
+        window.deleteEntity = deleteEntity;
+        window.refreshDetectedEntities = refreshDetectedEntities;
+        window.switchTab = switchTab;
+        window.testAction = testAction;
+        window.wakeUpPC = wakeUpPC;
+        window.testDiscord = testDiscord;
+        window.updateFCMStatus = updateFCMStatus;
+        window.startFCMListener = startFCMListener;
+        window.addAction = addAction;
+        window.updateEntityName = updateEntityName;
+        window.loadActions = loadActions;
+        window.updateActionField = updateActionField;
+        window.toggleActionEnabled = toggleActionEnabled;
+        window.deleteAction = deleteAction;
+
+        function updateRustPlusSteps(config) {
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            
+            // Check if elements exist
+            if (!step1 || !step2 || !step3) return;
+            
+            // Hide all steps first
+            step1.style.display = 'none';
+            step2.style.display = 'none';
+            step3.style.display = 'none';
+            
+            // Show step 1 if no token
+            if (!config.rustPlusPlayerId || !config.rustPlusPlayerToken) {
+                step1.style.display = 'block';
+                return;
+            }
+            
+            // Show step 2 if no FCM credentials OR no server paired
+            if (!config.fcmCredentials || !config.rustPlusServerIP) {
+                step2.style.display = 'block';
+                return;
+            }
+            
+            // Show step 3 only if we have token, FCM credentials, AND server paired
+            if (config.rustPlusPlayerId && config.rustPlusPlayerToken && 
+                config.fcmCredentials && config.rustPlusServerIP) {
+                step3.style.display = 'block';
+            }
+        }
+
+        function updateServerStatus(config) {
+            const serverInfo = document.getElementById('serverInfo');
+            
+            if (!serverInfo) return;
+            
+            if (config.rustPlusServerIP) {
+                const serverName = config.rustPlusServerName || 'Unknown Server';
+                // Check Rust+ connection status
+                checkRustPlusConnectionStatus(serverInfo, serverName, config);
+            } else {
+                serverInfo.innerHTML = 'No server paired';
+                serverInfo.style.color = '#6c757d';
+            }
+        }
+
+        async function checkRustPlusConnectionStatus(serverInfo, serverName, config) {
+            try {
+                const response = await fetch('/api/rust-plus-status');
+                const result = await response.json();
+                
+                if (result.connected) {
+                    serverInfo.innerHTML = `🟢 Rust+ Connected: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
+                    serverInfo.style.color = '#28a745';
+                } else if (result.connecting) {
+                    serverInfo.innerHTML = `🟡 Rust+ Connecting: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
+                    serverInfo.style.color = '#ffc107';
+                } else {
+                    serverInfo.innerHTML = `🔴 Rust+ Disconnected: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
+                    serverInfo.style.color = '#dc3545';
+                }
+            } catch (error) {
+                serverInfo.innerHTML = `❓ Rust+ Status Unknown: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
+                serverInfo.style.color = '#6c757d';
+            }
+        }
+
+        // Periodically update Rust+ connection status
+        function startRustPlusStatusUpdates() {
+            setInterval(async () => {
+                const config = await loadConfig();
+                if (config.rustPlusServerIP) {
+                    updateServerStatus(config);
+                }
+            }, 5000); // Update every 5 seconds
+        }
+
+        function updateTokenStatus(config) {
+            const tokenInfo = document.getElementById('tokenInfo');
+            const testRustPlusBtn = document.getElementById('testRustPlusBtn');
+            
+            if (!tokenInfo) return;
+            
+            if (config.rustPlusPlayerId && config.rustPlusPlayerToken) {
+                // Try to get stored data to show actual expiration
+                getStoredRustPlusData().then(data => {
+                    if (data && data.expiresInDays) {
+                        if (data.expiresInDays > 0) {
+                            tokenInfo.innerHTML = `✅ Token valid for ${data.expiresInDays} days`;
+                            tokenInfo.style.color = '#28a745';
+                        } else {
+                            tokenInfo.innerHTML = '❌ Token expired - please update';
+                            tokenInfo.style.color = '#dc3545';
+                        }
+                    } else {
+                        // Fallback to generic message
+                        tokenInfo.innerHTML = '✅ Token stored';
+                        tokenInfo.style.color = '#28a745';
+                    }
+                    if (testRustPlusBtn) {
+                        testRustPlusBtn.disabled = false;
+                    }
+                }).catch(() => {
+                    // Fallback to generic message
+                    tokenInfo.innerHTML = '✅ Token stored';
+                    tokenInfo.style.color = '#28a745';
+                    if (testRustPlusBtn) {
+                        testRustPlusBtn.disabled = false;
+                    }
+                });
+            } else {
+                tokenInfo.innerHTML = 'No token stored';
+                tokenInfo.style.color = '#6c757d';
+                if (testRustPlusBtn) {
+                    testRustPlusBtn.disabled = true;
+                }
+            }
+        }
+
+
+        async function startFCMPairing() {
+            const pairingButton = document.getElementById('startFCMPairingBtn');
+            const originalText = pairingButton.innerHTML;
+            
+            // Disable button and show loading
+            pairingButton.disabled = true;
+            pairingButton.innerHTML = '<div class="loading"></div>Starting FCM...';
+            
+            showStatus('Starting FCM pairing process...', 'info');
+
+            try {
+                // Step 1: Register FCM credentials
+                showStatus('Registering FCM credentials...', 'info');
+                const registerResponse = await fetch('/api/rust-plus/register-fcm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const registerResult = await registerResponse.json();
+                
+                if (!registerResult.success) {
+                    throw new Error('FCM registration failed: ' + registerResult.error);
+                }
+
+                // Step 2: Register with Rust+ API (if we have auth token)
+                const config = await fetch('/api/config').then(r => r.json());
+                if (config.rustPlusPlayerToken) {
+                    showStatus('Registering with Rust+ API...', 'info');
+                    const rustPlusResponse = await fetch('/api/rust-plus/register-rustplus', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            authToken: config.rustPlusPlayerToken
+                        })
+                    });
+
+                    const rustPlusResult = await rustPlusResponse.json();
+                    if (!rustPlusResult.success) {
+                        console.warn('Rust+ API registration failed:', rustPlusResult.error);
+                    }
+                }
+
+                // Step 3: Start FCM listening
+                showStatus('Starting FCM listener...', 'info');
+                const listenResponse = await fetch('/api/rust-plus/start-fcm-listen', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const listenResult = await listenResponse.json();
+                
+                if (listenResult.success) {
+                    showStatus('✅ FCM pairing started! Now pair with your Rust server in-game. Waiting for pairing notification...', 'success');
+                    // Re-enable button and update text
+                    pairingButton.disabled = false;
+                    pairingButton.innerHTML = '⏳ Waiting for Pairing...';
+                    // Start polling for server pairing status
+                    startPairingPolling();
+                } else {
+                    throw new Error('FCM listen failed: ' + listenResult.error);
+                }
+            } catch (error) {
+                showStatus('❌ FCM pairing failed: ' + error.message, 'error');
+                // Re-enable button on error
+                pairingButton.disabled = false;
+                pairingButton.innerHTML = originalText;
+            }
+        }
+
+        async function testRustPlus() {
+            const testButton = document.getElementById('testRustPlusBtn');
+            const originalText = testButton.innerHTML;
+            
+            // Disable button and show loading
+            testButton.disabled = true;
+            testButton.innerHTML = '<div class="loading"></div>Testing...';
+            
+            showStatus('Testing Rust+ connection...', 'info');
+
+            try {
+                // Get current config to ensure we have the latest data
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+                
+                if (!config.rustPlusServerIP || !config.rustPlusPlayerId || !config.rustPlusPlayerToken) {
+                    showStatus('Please pair with a Rust server first using FCM', 'error');
+                    return;
+                }
+
+                const response = await fetch('/api/test-rust-plus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        serverIP: config.rustPlusServerIP,
+                        serverPort: config.rustPlusServerPort || 28082,
+                        playerId: config.rustPlusPlayerId,
+                        playerToken: config.rustPlusPlayerToken
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('✅ Rust+ test notification sent successfully!', 'success');
+                } else {
+                    showStatus('❌ Rust+ test failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Rust+ test failed: ' + error.message, 'error');
+            } finally {
+                // Re-enable button
+                testButton.disabled = false;
+                testButton.innerHTML = originalText;
+            }
+        }
+
+        async function restartPairing() {
+            const restartButton = document.getElementById('restartPairingBtn');
+            const originalText = restartButton.innerHTML;
+            
+            // Disable button and show loading
+            restartButton.disabled = true;
+            restartButton.innerHTML = '<div class="loading"></div>Checking...';
+            
+            showStatus('Checking token validity...', 'info');
+
+            try {
+                // Get current config to check token validity
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+                console.log('Server config rustPlusTokenExpiry:', config.rustPlusTokenExpiry);
+                
+                // Check if we have a valid token from extension
+                let hasValidToken = false;
+                
+                // Check server's stored token expiry (NO extension data)
+                console.log('Checking token expiry:', config.rustPlusTokenExpiry);
+                if (config.rustPlusTokenExpiry && config.rustPlusTokenExpiry !== "") {
+                    console.log('Token expiry found, checking validity...');
+                    try {
+                        const expiryDate = new Date(config.rustPlusTokenExpiry);
+                        const now = new Date();
+                        const timeLeft = expiryDate - now;
+                        
+                        if (timeLeft > 0) {
+                            const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                            hasValidToken = true;
+                            showStatus(`✅ Token is still valid for ${daysLeft} days, skipping token update`, 'success');
+                } else {
+                            hasValidToken = false;
+                            showStatus('⚠️ Token expired, updating token...', 'info');
+                }
+            } catch (error) {
+                        hasValidToken = false;
+                        showStatus('⚠️ Invalid token expiry format, updating token...', 'info');
+                    }
+                } else {
+                    console.log('No token expiry found, going to step 1');
+                    hasValidToken = false;
+                    showStatus('⚠️ No token expiry stored, updating token...', 'info');
+                }
+                
+                console.log('hasValidToken:', hasValidToken);
+                
+                if (!hasValidToken) {
+                    // Go to step 1 to update token
+                    updateRustPlusSteps({});
+                } else {
+                    showStatus('✅ Token is valid, starting FCM pairing...', 'success');
+                    // Skip to step 2 (FCM pairing)
+                    updateRustPlusSteps({
+                        rustPlusPlayerId: config.rustPlusPlayerId,
+                        rustPlusPlayerToken: config.rustPlusPlayerToken
+                    });
+                }
+                
+            } catch (error) {
+                showStatus('❌ Restart pairing failed: ' + error.message, 'error');
+            } finally {
+                // Re-enable button
+                restartButton.disabled = false;
+                restartButton.innerHTML = originalText;
             }
         }
 
