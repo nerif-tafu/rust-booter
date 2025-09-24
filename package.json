@@ -17,7 +17,7 @@
     "cors": "^2.8.5",
     "discord-webhook-node": "^1.1.8",
     "@liamcottle/rustplus.js": "git+https://github.com/JulianMa/rustplus.js.git#9f87ea17f3d330c23615757130855590ad84ac22",
-    "@liamcottle/push-receiver": "^1.0.0",
+    "@liamcottle/push-receiver": "^0.0.3",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
