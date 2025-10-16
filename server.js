@@ -5,10 +5,7 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const { Webhook } = require('discord-webhook-node');
-const RustPlus = require('@liamcottle/rustplus.js');
-const { v4: uuidv4 } = require('uuid');
-const PushReceiverClient = require('@liamcottle/push-receiver/src/client');
-const AndroidFCM = require('@liamcottle/push-receiver/src/android/fcm');
+const WebSocket = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 8534;
@@ -32,16 +29,350 @@ const defaultConfig = {
   rustServerPort: 28015,
   discordWebhookURL: '',
   rustPlusEnabled: false,
-  rustPlusServerIP: '',
-  rustPlusServerPort: 28082,
-  rustPlusPlayerId: '',
-  rustPlusPlayerToken: '',
-  rustPlusTokenExpiry: '',
-  rustPlusServerName: '',
-  fcmCredentials: null,
+  selectedServerId: '',
   smartAlarms: [],
   detectedEntities: {}
 };
+
+// WebSocket client class for Rust+ API
+class RustPlusWebSocketClient {
+  constructor() {
+    this.ws = null;
+    this.isConnected = false;
+    this.isConnecting = false;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.reconnectDelay = 5000;
+    this.messageHandlers = new Map();
+    this.servers = {};
+    this.selectedServerId = null;
+  }
+
+  async connect() {
+    if (this.isConnected || this.isConnecting) {
+      return;
+    }
+
+    this.isConnecting = true;
+    console.log('🔗 Connecting to Rust+ WebSocket API...');
+
+    try {
+      this.ws = new WebSocket('wss://rust-plus-api.tafu.casa');
+      
+      this.ws.on('open', () => {
+        console.log('✅ Connected to Rust+ WebSocket API');
+        this.isConnected = true;
+        this.isConnecting = false;
+        this.reconnectAttempts = 0;
+        
+        // Request initial server list
+        this.getServers();
+      });
+
+      this.ws.on('message', (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          this.handleMessage(message);
+  } catch (error) {
+          console.error('❌ Error parsing WebSocket message:', error);
+        }
+      });
+
+      this.ws.on('close', () => {
+        console.log('❌ Disconnected from Rust+ WebSocket API');
+        this.isConnected = false;
+        this.isConnecting = false;
+        this.attemptReconnect();
+      });
+
+      this.ws.on('error', (error) => {
+        console.error('❌ WebSocket error:', error);
+        this.isConnected = false;
+        this.isConnecting = false;
+        this.attemptReconnect();
+      });
+
+    } catch (error) {
+      console.error('❌ Failed to connect to WebSocket:', error);
+      this.isConnecting = false;
+      this.attemptReconnect();
+    }
+  }
+
+  attemptReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('❌ Max reconnection attempts reached');
+    return;
+  }
+
+    this.reconnectAttempts++;
+    console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${this.reconnectDelay/1000}s...`);
+    
+    setTimeout(() => {
+      this.connect();
+    }, this.reconnectDelay);
+  }
+
+  handleMessage(message) {
+    // Only log relevant messages for Rust Booter functionality
+    const relevantTypes = ['servers_list', 'entity_changed', 'team_message', 'server_connected', 'server_disconnected'];
+    
+    if (relevantTypes.includes(message.type)) {
+      console.log('📨 WebSocket message received:', JSON.stringify(message, null, 2));
+    }
+    
+    switch (message.type) {
+      case 'servers_list':
+        this.handleServersList(message.data);
+        break;
+      case 'server_info':
+        this.handleServerInfo(message.data);
+        break;
+      case 'map_data':
+        this.handleMapData(message.data);
+        break;
+      case 'team_info':
+        this.handleTeamInfo(message.data);
+        break;
+      case 'entity_info':
+        this.handleEntityInfo(message.data);
+        break;
+      case 'switch_toggled':
+        this.handleSwitchToggled(message.data);
+        break;
+      case 'team_message_sent':
+        this.handleTeamMessageSent(message.data);
+        break;
+      case 'team_message':
+        this.handleTeamMessage(message.data);
+        break;
+      case 'entity_changed':
+        this.handleEntityChanged(message.data);
+        break;
+      case 'server_connected':
+        this.handleServerConnected(message.data);
+        break;
+      case 'server_disconnected':
+        this.handleServerDisconnected(message.data);
+        break;
+      case 'live_event':
+        this.handleLiveEvent(message.data);
+        break;
+      default:
+        // Only log unknown types if they might be relevant
+        if (message.type && !message.type.includes('server_message')) {
+          console.log('📡 Unknown message type:', message.type);
+        }
+    }
+  }
+
+  handleServersList(data) {
+    this.servers = data.servers || {};
+    console.log('📋 Servers list updated:', Object.keys(this.servers).length, 'servers');
+    
+    // Update detected entities from server data
+    this.updateDetectedEntities();
+  }
+
+  updateDetectedEntities() {
+    const config = loadConfig();
+    if (!config.detectedEntities) {
+      config.detectedEntities = {};
+    }
+
+    // Clear existing entities and rebuild from server data
+    config.detectedEntities = {};
+
+    Object.entries(this.servers).forEach(([serverId, server]) => {
+      // Add switches
+      if (server.switches) {
+        server.switches.forEach(switchEntity => {
+          config.detectedEntities[switchEntity.entityId] = {
+            id: switchEntity.entityId,
+            name: switchEntity.entityName || `Switch ${switchEntity.entityId}`,
+            type: switchEntity.entityType || 'switch',
+            lastValue: false,
+            lastChanged: new Date().toISOString(),
+            paired: true,
+            serverId: serverId,
+            serverName: server.name
+          };
+        });
+      }
+
+      // Add alarms
+      if (server.alarms) {
+        server.alarms.forEach(alarmEntity => {
+          config.detectedEntities[alarmEntity.entityId] = {
+            id: alarmEntity.entityId,
+            name: alarmEntity.entityName || `Alarm ${alarmEntity.entityId}`,
+            type: alarmEntity.entityType || 'alarm',
+            lastValue: false,
+            lastChanged: new Date().toISOString(),
+            paired: true,
+            serverId: serverId,
+            serverName: server.name
+          };
+        });
+      }
+    });
+
+    saveConfig(config);
+    const entityCount = Object.keys(config.detectedEntities).length;
+    if (entityCount > 0) {
+      console.log('📊 Updated detected entities from server data:', entityCount, 'entities');
+    }
+  }
+
+  handleServerInfo(data) {
+    // Only log if there's important info
+    if (data && data.name) {
+      console.log('📊 Server info received for:', data.name);
+    }
+  }
+
+  handleMapData(data) {
+    // Map data is not relevant for Rust Booter
+  }
+
+  handleTeamInfo(data) {
+    // Team info is not relevant for Rust Booter
+  }
+
+  handleEntityInfo(data) {
+    // Entity info is not relevant for Rust Booter
+  }
+
+  handleSwitchToggled(data) {
+    // Switch toggled is not relevant for Rust Booter
+  }
+
+  handleTeamMessageSent(data) {
+    // Team message sent is not relevant for Rust Booter
+  }
+
+  handleTeamMessage(data) {
+    console.log('💬 Team message received:', data.message);
+  }
+
+  handleEntityChanged(data) {
+    console.log('🔧 Entity changed:', data.entityId, 'is now', data.isActive ? 'active' : 'inactive');
+    // Process smart alarm triggers here
+    this.processEntityChange(data);
+  }
+
+  handleServerConnected(data) {
+    console.log('🟢 Server connected:', data.serverName);
+  }
+
+  handleServerDisconnected(data) {
+    console.log('🔴 Server disconnected:', data.serverName);
+  }
+
+  handleLiveEvent(data) {
+    // Live events are not relevant for Rust Booter
+  }
+
+  processEntityChange(data) {
+    // Load config and process smart alarms
+    const config = loadConfig();
+    console.log(`🔍 Smart alarms in config:`, config.smartAlarms);
+    
+    if (!config.smartAlarms || config.smartAlarms.length === 0) {
+      console.log('⚠️ No smart alarms configured');
+      return;
+    }
+
+    // Update the entity status in detected entities
+    if (config.detectedEntities && config.detectedEntities[data.entityId]) {
+      config.detectedEntities[data.entityId].lastValue = data.isActive;
+      config.detectedEntities[data.entityId].lastChanged = new Date().toISOString();
+      saveConfig(config);
+    }
+
+    console.log(`🔍 Processing entity change for entityId: ${data.entityId} (type: ${typeof data.entityId})`);
+    console.log(`🔍 Available smart alarms:`, config.smartAlarms.map(alarm => ({
+      name: alarm.name,
+      entityId: alarm.entityId,
+      entityIdType: typeof alarm.entityId,
+      enabled: alarm.enabled
+    })));
+
+    config.smartAlarms.forEach((alarm) => {
+      // Convert both to strings for comparison to handle type mismatches
+      const alarmEntityId = String(alarm.entityId);
+      const dataEntityId = String(data.entityId);
+      
+      console.log(`🔍 Comparing alarm entityId "${alarmEntityId}" with data entityId "${dataEntityId}"`);
+      
+      if (alarm.enabled && alarmEntityId === dataEntityId) {
+        const triggerOnActivation = alarm.triggerOnActivation !== undefined ? alarm.triggerOnActivation : true;
+        const shouldTrigger = triggerOnActivation ? data.isActive : !data.isActive;
+        
+        console.log(`🔍 Alarm "${alarm.name}" - triggerOnActivation: ${triggerOnActivation}, data.isActive: ${data.isActive}, shouldTrigger: ${shouldTrigger}`);
+        
+        if (shouldTrigger) {
+          console.log(`🚨 Smart alarm triggered: ${alarm.name}`);
+          triggerSmartAlarmAction(alarm, config, data.isActive);
+        } else {
+          console.log(`⏸️ Smart alarm condition not met: ${alarm.name} (triggerOnActivation: ${triggerOnActivation}, isActive: ${data.isActive})`);
+        }
+      }
+    });
+  }
+
+  sendCommand(command) {
+    if (!this.isConnected || !this.ws) {
+      console.error('❌ WebSocket not connected');
+      return false;
+    }
+
+    try {
+      this.ws.send(JSON.stringify(command));
+      return true;
+    } catch (error) {
+      console.error('❌ Error sending WebSocket command:', error);
+      return false;
+    }
+  }
+
+  getServers() {
+    return this.sendCommand({ type: 'get_servers' });
+  }
+
+  getServerInfo(serverId) {
+    return this.sendCommand({ type: 'get_server_info', serverId });
+  }
+
+  getMapData(serverId) {
+    return this.sendCommand({ type: 'get_map_data', serverId });
+  }
+
+  getTeamInfo(serverId) {
+    return this.sendCommand({ type: 'get_team_info', serverId });
+  }
+
+  getEntityInfo(serverId, entityId) {
+    return this.sendCommand({ type: 'get_entity_info', serverId, entityId });
+  }
+
+  toggleSwitch(serverId, entityId) {
+    return this.sendCommand({ type: 'toggle_switch', serverId, entityId });
+  }
+
+  sendTeamMessage(serverId, message) {
+    return this.sendCommand({ type: 'send_team_message', serverId, message });
+  }
+
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.isConnected = false;
+    this.isConnecting = false;
+  }
+}
 
 // Load configuration
 function loadConfig() {
@@ -49,13 +380,13 @@ function loadConfig() {
     if (fs.existsSync(CONFIG_FILE)) {
       const data = fs.readFileSync(CONFIG_FILE, 'utf8');
       return { ...defaultConfig, ...JSON.parse(data) };
-    } else {
+      } else {
       // Generate default config file if it doesn't exist
       console.log('Config file not found, creating default config.json...');
       saveConfig(defaultConfig);
       return defaultConfig;
-    }
-  } catch (error) {
+      }
+    } catch (error) {
     console.error('Error loading config:', error);
     return defaultConfig;
   }
@@ -119,399 +450,51 @@ async function sendDiscordNotification(config, message, isError = false) {
   }
 }
 
-// Rust+ connection and notifications
-let rustPlusClient = null;
-let fcmClient = null;
+// WebSocket client instance
+let rustPlusWSClient = null;
 
-// Get Expo Push Token
-async function getExpoPushToken(fcmToken) {
-  const response = await axios.post('https://exp.host/--/api/v2/push/getExpoPushToken', {
-    type: 'fcm',
-    deviceId: uuidv4(),
-    development: false,
-    appId: 'com.facepunch.rust.companion',
-    deviceToken: fcmToken,
-    projectId: "49451aca-a822-41e6-ad59-955718d0ff9c",
-  });
-  return response.data.data.expoPushToken;
-}
-
-// Register with Rust+ API
-async function registerWithRustPlus(authToken, expoPushToken) {
-  return axios.post('https://companion-rust.facepunch.com:443/api/push/register', {
-    AuthToken: authToken,
-    DeviceId: 'rust-booter',
-    PushKind: 3,
-    PushToken: expoPushToken,
-  });
-}
-
-// FCM Registration
-async function registerFCM() {
-  try {
-    console.log('🔧 Registering FCM credentials...');
-    
-    // Use the proper FCM registration method with Rust+ specific credentials
-    const apiKey = "AIzaSyB5y2y-Tzqb4-I4Qnlsh_9naYv_TD8pCvY";
-    const projectId = "rust-companion-app";
-    const gcmSenderId = "976529667804";
-    const gmsAppId = "1:976529667804:android:d6f1ddeb4403b338fea619";
-    const androidPackageName = "com.facepunch.rust.companion";
-    const androidPackageCert = "E28D05345FB78A7A1A63D70F4A302DBF426CA5AD";
-    
-    const credentials = await AndroidFCM.register(
-      apiKey, 
-      projectId, 
-      gcmSenderId, 
-      gmsAppId, 
-      androidPackageName, 
-      androidPackageCert
-    );
-    
-    console.log('✅ FCM credentials registered successfully');
-    
-    // Get Expo push token
-    console.log('🔧 Fetching Expo Push Token...');
-    const expoPushToken = await getExpoPushToken(credentials.fcm.token);
-    console.log('✅ Expo Push Token:', expoPushToken);
-    
-    // Register with Rust+ API (we'll need the auth token from the user)
-    console.log('⚠️  Note: You need to provide your Rust+ auth token to complete registration');
-    
-    return {
-      ...credentials,
-      expoPushToken: expoPushToken
-    };
-  } catch (error) {
-    console.error('❌ FCM registration failed:', error);
-    throw error;
+// Initialize WebSocket client
+function initializeWebSocketClient() {
+  if (!rustPlusWSClient) {
+    rustPlusWSClient = new RustPlusWebSocketClient();
+    rustPlusWSClient.connect();
   }
+  return rustPlusWSClient;
 }
 
-// FCM Listen for notifications
-async function fcmListen(config) {
-  if (!config.fcmCredentials) {
-    throw new Error('FCM Credentials missing. Please register FCM first.');
+// Get available servers from WebSocket
+async function getAvailableServers() {
+  const client = initializeWebSocketClient();
+  if (client.isConnected) {
+    client.getServers();
+    return client.servers;
   }
+  return {};
+}
 
-  console.log('📡 Listening for FCM Notifications');
-  const androidId = config.fcmCredentials.gcm.androidId;
-  const securityToken = config.fcmCredentials.gcm.securityToken;
+// Select a server for operations
+function selectServer(serverId) {
+  const config = loadConfig();
+  config.selectedServerId = serverId;
+  saveConfig(config);
   
-  fcmClient = new PushReceiverClient(androidId, securityToken, []);
-  
-  fcmClient.on('ON_DATA_RECEIVED', (data) => {
-    const timestamp = new Date().toLocaleString();
-    console.log(`\x1b[32m%s\x1b[0m`, `[${timestamp}] FCM Notification Received`);
-    console.log('FCM Data:', data);
-    
-    // Handle Rust+ pairing notification
-    handleRustPlusPairing(data);
-  });
-
-  // Force exit on ctrl + c
-  process.on('SIGINT', async () => {
-    if (fcmClient) {
-      await fcmClient.disconnect();
-    }
-    process.exit(0);
-  });
-
-  await fcmClient.connect();
-  console.log('✅ FCM listener connected');
-}
-
-// Handle Rust+ pairing notification
-function handleRustPlusPairing(data) {
-  console.log('🔗 Processing Rust+ pairing data:', data);
-  
-    try {
-      // Extract pairing information from FCM appData
-      const bodyData = data.appData.find(item => item.key === 'body');
-      if (bodyData && bodyData.value) {
-        const pairingInfo = JSON.parse(bodyData.value);
-        
-        // Check if this is a server pairing notification
-        if (pairingInfo.type === 'server') {
-          console.log('✅ Rust+ server pairing successful!');
-          console.log(`Server: ${pairingInfo.ip}:${pairingInfo.port}`);
-          console.log(`Player ID: ${pairingInfo.playerId}`);
-          console.log(`Player Token: ${pairingInfo.playerToken}`);
-          console.log(`Server Name: ${pairingInfo.name}`);
-          
-          // Update configuration with pairing data
-          const config = loadConfig();
-          const updatedConfig = {
-            ...config,
-            rustPlusServerIP: pairingInfo.ip,
-            rustPlusServerPort: parseInt(pairingInfo.port),
-            rustPlusPlayerId: pairingInfo.playerId,
-            rustPlusPlayerToken: pairingInfo.playerToken,
-            rustPlusServerName: pairingInfo.name
-          };
-          
-          if (saveConfig(updatedConfig)) {
-            console.log('✅ Configuration updated with server pairing data');
-            
-            // Connect to Rust+ server
-            connectToRustPlus(updatedConfig);
-          } else {
-            console.error('❌ Failed to save pairing data to config');
-          }
-        }
-        // Check if this is a smart device pairing notification
-        else if (pairingInfo.type === 'entity' || pairingInfo.entityId) {
-          console.log('✅ Smart device pairing detected!');
-          console.log(`Entity ID: ${pairingInfo.entityId}`);
-          console.log(`Entity Type: ${pairingInfo.entityType || 'unknown'}`);
-          console.log(`Entity Name: ${pairingInfo.entityName || 'Unnamed Device'}`);
-          
-          // Store the smart device information
-          const config = loadConfig();
-          if (!config.detectedEntities) {
-            config.detectedEntities = {};
-          }
-          
-          // Update server IP if it's different (smart device notifications also contain server info)
-          if (pairingInfo.ip && pairingInfo.ip !== config.rustPlusServerIP) {
-            console.log(`🔄 Updating server IP from ${config.rustPlusServerIP} to ${pairingInfo.ip}`);
-            config.rustPlusServerIP = pairingInfo.ip;
-            config.rustPlusServerPort = parseInt(pairingInfo.port) || config.rustPlusServerPort;
-            config.rustPlusPlayerId = pairingInfo.playerId || config.rustPlusPlayerId;
-            config.rustPlusPlayerToken = pairingInfo.playerToken || config.rustPlusPlayerToken;
-            config.rustPlusServerName = pairingInfo.name || config.rustPlusServerName;
-          }
-          
-          // Check if entity is already paired
-          if (config.detectedEntities[pairingInfo.entityId]) {
-            console.log(`⏸️ Entity ${pairingInfo.entityId} is already paired - skipping`);
-            // Update lastChanged timestamp but preserve existing name
-            config.detectedEntities[pairingInfo.entityId].lastChanged = new Date().toISOString();
-            config.detectedEntities[pairingInfo.entityId].paired = true;
-            saveConfig(config);
-            return;
-          }
-          
-          config.detectedEntities[pairingInfo.entityId] = {
-            id: pairingInfo.entityId,
-            name: pairingInfo.entityName || `Smart Device ${pairingInfo.entityId}`,
-            type: pairingInfo.entityType || 'unknown',
-            lastValue: false,
-            lastChanged: new Date().toISOString(),
-            paired: true
-          };
-          
-          if (saveConfig(config)) {
-            console.log('✅ Smart device added to detected entities');
-            
-            // If server IP changed, reconnect to the new server
-            if (pairingInfo.ip && pairingInfo.ip !== config.rustPlusServerIP) {
-              console.log('🔄 Server IP changed - reconnecting to new server...');
-              if (rustPlusClient) {
-                rustPlusClient.disconnect();
-              }
-              setTimeout(() => {
-                connectToRustPlus(config);
-              }, 2000); // Wait 2 seconds before reconnecting
-            }
-            
-            // Subscribe to entity broadcasts by calling getEntityInfo
-            if (rustPlusClient && rustPlusClient.isConnected()) {
-              console.log(`📡 Subscribing to entity broadcasts for ${pairingInfo.entityId}...`);
-              rustPlusClient.getEntityInfo(pairingInfo.entityId, (message) => {
-                console.log(`📊 Entity info received for ${pairingInfo.entityId}:`, JSON.stringify(message, null, 2));
-              });
-            } else {
-              console.log('⚠️ Rust+ client not connected - will subscribe when connected');
-            }
-          } else {
-            console.error('❌ Failed to save smart device information');
-          }
-        }
-        else if (pairingInfo.type === 'alarm') {
-          console.log('🔔 Alarm notification received (not a smart device pairing)');
-          console.log(`Alarm Message: ${data.appData.find(item => item.key === 'message')?.value || 'Unknown'}`);
-          // Don't process as entity pairing - these are just alarm notifications
-        }
-        else {
-          console.log('⚠️ Unknown pairing type:', pairingInfo.type);
-          console.log('Full pairing data:', pairingInfo);
-        }
-      } else {
-        console.log('⚠️  No pairing data found in FCM notification');
-      }
-    } catch (error) {
-    console.error('❌ Error processing pairing data:', error);
-  }
-}
-
-// Connect to Rust+ server
-async function connectToRustPlus(config) {
-  if (!config.rustPlusServerIP || !config.rustPlusPlayerId || !config.rustPlusPlayerToken) {
-    console.log('⚠️ Rust+ connection skipped - missing credentials');
-    return null;
-  }
-
-  // Prevent multiple simultaneous connection attempts
-  if (isConnecting) {
-    console.log('⚠️ Rust+ connection already in progress - skipping duplicate attempt');
-    return null;
-  }
-
-  // Check if we're already connected to avoid duplicate connections
-  try {
-    if (rustPlusClient && rustPlusClient.isConnected()) {
-      console.log('⚠️ Rust+ already connected - skipping duplicate connection');
-      return rustPlusClient;
-    }
-  } catch (error) {
-    console.log('⚠️ Error checking existing connection, proceeding with new connection:', error.message);
-    // Continue with new connection attempt
-  }
-
-  isConnecting = true;
-
-  try {
-    console.log(`🔗 Connecting to Rust+ server: ${config.rustPlusServerIP}:${config.rustPlusServerPort}`);
-    
-    // Add connection timeout
-    const connectionTimeout = setTimeout(() => {
-      console.log('⏰ Connection timeout - server may be down or unreachable');
-      if (rustPlusClient) {
-        rustPlusClient.disconnect();
-      }
-    }, 15000); // 15 second timeout
-    
-    rustPlusClient = new RustPlus(config.rustPlusServerIP, config.rustPlusServerPort, config.rustPlusPlayerId, config.rustPlusPlayerToken);
-    
-    // Set up event listeners
-  rustPlusClient.on('connected', () => {
-    console.log('✅ Connected to Rust+ server');
-    isConnecting = false; // Reset connection flag
-    clearTimeout(connectionTimeout); // Clear the timeout since we connected
-    // Start listening for smart alarm messages
-    startSmartAlarmListener(config);
-    
-    // Request initial data to start receiving broadcasts
-    console.log('📡 Requesting initial server data to start receiving messages...');
-    
-    // Wait for WebSocket to be fully ready before sending requests
-    setTimeout(() => {
-      if (rustPlusClient && rustPlusClient.isConnected()) {
-        console.log('📡 WebSocket is ready, sending initial requests...');
-        
-        // Get server info to start receiving broadcasts
-        rustPlusClient.getInfo((message) => {
-          console.log('📊 Server info received:', JSON.stringify(message, null, 2));
-        });
-        
-        // Get team info to start receiving team messages
-        rustPlusClient.getTeamInfo((message) => {
-          console.log('👥 Team info received:', JSON.stringify(message, null, 2));
-        });
-        
-        // Get time to start receiving time updates
-        rustPlusClient.getTime((message) => {
-          console.log('⏰ Time info received:', JSON.stringify(message, null, 2));
-        });
-        
-        // Subscribe to existing smart alarms for broadcasts
-        setTimeout(() => {
-          subscribeToExistingEntities(config);
-        }, 2000); // Wait 2 more seconds for initial requests to complete
-      } else {
-        console.log('⚠️ WebSocket not ready, skipping initial requests');
-      }
-    }, 1000); // Wait 1 second for WebSocket to stabilize
-  });
-    
-    rustPlusClient.on('disconnected', () => {
-      console.log('❌ Disconnected from Rust+ server - attempting to reconnect in 5 seconds...');
-      isConnecting = false; // Reset connection flag
-      // Auto-reconnect after 5 seconds
-      setTimeout(() => {
-        if (config.rustPlusServerIP && config.rustPlusPlayerId && config.rustPlusPlayerToken) {
-          console.log('🔄 Attempting to reconnect to Rust+ server...');
-          connectToRustPlus(config);
-        }
-      }, 5000);
-    });
-    
-    rustPlusClient.on('error', (error) => {
-      console.error('❌ Rust+ error:', error);
-      isConnecting = false; // Reset connection flag
-      clearTimeout(connectionTimeout); // Clear timeout on error
-      
-      // Only attempt to reconnect for certain errors, not timeouts
-      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
-        console.log('⚠️ Server appears to be down or unreachable - will retry less frequently');
-        // Longer delay for connection issues
-        setTimeout(() => {
-          if (config.rustPlusServerIP && config.rustPlusPlayerId && config.rustPlusPlayerToken) {
-            console.log('🔄 Attempting to reconnect to Rust+ server after connection error...');
-            connectToRustPlus(config);
-          }
-        }, 30000); // 30 second delay for connection issues
-      } else {
-        // Shorter delay for other errors
-        setTimeout(() => {
-          if (config.rustPlusServerIP && config.rustPlusPlayerId && config.rustPlusPlayerToken) {
-            console.log('🔄 Attempting to reconnect to Rust+ server after error...');
-            connectToRustPlus(config);
-          }
-        }, 10000);
-      }
-    });
-    
-    rustPlusClient.on('entityChanged', (entity) => {
-      console.log(`🔧 Entity changed: ${entity.entityId} - ${entity.value}`);
-    });
-    
-    rustPlusClient.on('teamChanged', (teamInfo) => {
-      console.log('👥 Team info updated:', teamInfo);
-    });
-    
-    // Listen for all messages for smart alarms
-    rustPlusClient.on('message', (message) => {
-      console.log('📨 Rust+ Message Event:', JSON.stringify(message, null, 2));
-      processSmartAlarmMessage(message, config);
-    });
-    
-    rustPlusClient.on('teamMessage', (message) => {
-      console.log(`💬 Team message: ${message.message}`);
-    });
-    
-    rustPlusClient.on('entityInfo', (entityInfo) => {
-      console.log(`📊 Entity info: ${entityInfo.entityId} - ${entityInfo.value}`);
-    });
-    
-    // Connect to the server
-    await rustPlusClient.connect();
-    
-    return rustPlusClient;
-  } catch (error) {
-    console.error('Failed to connect to Rust+ server:', error);
-    isConnecting = false; // Reset connection flag
-    // Attempt to reconnect on connection failure
-    setTimeout(() => {
-      if (config.rustPlusServerIP && config.rustPlusPlayerId && config.rustPlusPlayerToken) {
-        console.log('🔄 Attempting to reconnect to Rust+ server after connection failure...');
-        connectToRustPlus(config);
-      }
-    }, 15000);
-    return null;
+  const client = initializeWebSocketClient();
+  if (client.isConnected && serverId) {
+    client.getServerInfo(serverId);
+    client.getTeamInfo(serverId);
   }
 }
 
 // Smart Alarm Functions
 function startSmartAlarmListener(config) {
-  console.log('🔔 Smart alarm listener started');
+  console.log('🔔 Smart alarm listener started via WebSocket');
 }
 
 // Subscribe to existing entities for broadcasts
 function subscribeToExistingEntities(config) {
-  if (!rustPlusClient || !rustPlusClient.isConnected()) {
-    console.log('⚠️ Cannot subscribe to entities - not connected to Rust+');
+  const client = initializeWebSocketClient();
+  if (!client.isConnected) {
+    console.log('⚠️ Cannot subscribe to entities - WebSocket not connected');
     return;
   }
 
@@ -524,138 +507,63 @@ function subscribeToExistingEntities(config) {
   
   Object.values(config.detectedEntities).forEach(entity => {
     console.log(`📡 Subscribing to entity ${entity.id} (${entity.name})...`);
-    rustPlusClient.getEntityInfo(entity.id, (message) => {
-      console.log(`📊 Entity info received for ${entity.id}:`, JSON.stringify(message, null, 2));
-    });
+    if (config.selectedServerId) {
+      client.getEntityInfo(config.selectedServerId, entity.id);
+    }
   });
 }
 
 // Connection health check
 function startConnectionHealthCheck(config) {
   setInterval(() => {
-    if (config.rustPlusServerIP && config.rustPlusPlayerId && config.rustPlusPlayerToken) {
-      if (!rustPlusClient || !rustPlusClient.isConnected()) {
-        console.log('🔄 Rust+ connection lost - attempting to reconnect...');
-        connectToRustPlus(config);
+    const client = initializeWebSocketClient();
+    if (!client.isConnected) {
+      console.log('🔄 WebSocket connection lost - attempting to reconnect...');
+      client.connect();
         } else {
-          // Keep connection active by requesting data periodically (less frequently to avoid rate limits)
-          console.log('🔄 Keeping Rust+ connection active...');
-          try {
-            if (rustPlusClient && rustPlusClient.isConnected()) {
-              rustPlusClient.getTime((message) => {
-                console.log('⏰ Periodic time check:', JSON.stringify(message, null, 2));
-              });
-            } else {
-              console.log('⚠️ Rust+ client not ready for periodic check');
-            }
-          } catch (error) {
-            console.log('⚠️ Error during periodic Rust+ check:', error.message);
-          }
-        }
-      }
-    }, 60000); // Check every 60 seconds (reduced frequency)
+      // Keep connection active by requesting server list periodically
+      console.log('🔄 Keeping WebSocket connection active...');
+      client.getServers();
+    }
+  }, 60000); // Check every 60 seconds
 }
 
-function processSmartAlarmMessage(message, config) {
-  // Always log every single Rust+ message
-  console.log('📨 Rust+ Message Received:', JSON.stringify(message, null, 2));
+// Process entity changes from WebSocket
+function processEntityChange(entityData) {
+  const config = loadConfig();
   
-  // Load fresh config to avoid stale data
-  const freshConfig = loadConfig();
-
-  // Check for entity changes (like smart alarms)
-  if (message.broadcast && message.broadcast.entityChanged) {
-    const entityChanged = message.broadcast.entityChanged;
-    const entityId = entityChanged.entityId;
-    const rawValue = entityChanged.payload.value;
-    
-    // Handle null/undefined values - treat empty payload as "inactive"
-    let value;
-    if (rawValue === null || rawValue === undefined) {
-      console.log(`🔧 Entity Changed Debug: ID=${entityId}, Raw Value=${rawValue} - Treating as inactive (empty payload)`);
-      value = false; // Empty payload means entity is inactive
-    } else {
-      value = rawValue; // Use the actual value
-    }
-    
-    console.log(`🔧 Entity Changed Debug: ID=${entityId}, Raw Value=${rawValue}, Final Value=${value}, Type=${typeof rawValue}`);
-    console.log(`🔧 Entity ${entityId} is now ${value ? "active" : "inactive"}`);
-    
-    // Store the entity info for the frontend to use
-    if (!freshConfig.detectedEntities) {
-      freshConfig.detectedEntities = {};
-    }
-    
-    // Check if entity already exists to preserve its name
-    const existingEntity = freshConfig.detectedEntities[entityId];
-    const entityName = existingEntity ? existingEntity.name : `Entity ${entityId}`;
-    
-    freshConfig.detectedEntities[entityId] = {
-      id: entityId,
-      lastValue: value,
+  if (!config.detectedEntities) {
+    config.detectedEntities = {};
+  }
+  
+  // Update entity info
+  const existingEntity = config.detectedEntities[entityData.entityId];
+  const entityName = existingEntity ? existingEntity.name : `Entity ${entityData.entityId}`;
+  
+  config.detectedEntities[entityData.entityId] = {
+    id: entityData.entityId,
+    lastValue: entityData.isActive,
       lastChanged: new Date().toISOString(),
-      name: entityName, // Preserve existing name or use default
+    name: entityName,
       type: existingEntity ? existingEntity.type : 'unknown',
-      paired: existingEntity ? existingEntity.paired : false
-    };
-    
-    // Debug: Log smart alarms before save
-    console.log(`🔍 Before save - Smart alarms:`, JSON.stringify(freshConfig.smartAlarms, null, 2));
-    
-    // Save the updated config with detected entities
-    saveConfig(freshConfig);
-    
-    // Debug: Log smart alarms after save (reload to verify)
-    const reloadedConfig = loadConfig();
-    console.log(`🔍 After save - Smart alarms:`, JSON.stringify(reloadedConfig.smartAlarms, null, 2));
-    
-    // Check each smart alarm rule for entity changes
-    if (freshConfig.smartAlarms && freshConfig.smartAlarms.length > 0) {
-      freshConfig.smartAlarms.forEach((alarm, index) => {
-        if (alarm.enabled && alarm.entityId === entityId.toString()) {
-          // Check if the trigger condition matches
-          // triggerOnActivation = true means trigger when entity becomes active (value = true)
-          // triggerOnActivation = false means trigger when entity becomes inactive (value = false)
-          // Default to true (activation) if not set for backward compatibility
+    paired: true
+  };
+  
+  saveConfig(config);
+  
+  // Check smart alarms
+  if (config.smartAlarms && config.smartAlarms.length > 0) {
+    config.smartAlarms.forEach((alarm) => {
+      if (alarm.enabled && alarm.entityId === entityData.entityId.toString()) {
           const triggerOnActivation = alarm.triggerOnActivation !== undefined ? alarm.triggerOnActivation : true;
-          const shouldTrigger = triggerOnActivation ? value : !value;
-          
+        const shouldTrigger = triggerOnActivation ? entityData.isActive : !entityData.isActive;
           
           if (shouldTrigger) {
-            console.log(`🚨 Smart alarm triggered: ${alarm.name} (Entity ${entityId} is now ${value ? "active" : "inactive"}) - Trigger: ${triggerOnActivation ? "Activation" : "Deactivation"}`);
-            triggerSmartAlarmAction(alarm, freshConfig, value);
-          } else {
-            console.log(`⏸️ Smart alarm condition not met: ${alarm.name} (Entity ${entityId} is ${value ? "active" : "inactive"}, but trigger is set to ${triggerOnActivation ? "Activation" : "Deactivation"})`);
+          console.log(`🚨 Smart alarm triggered: ${alarm.name}`);
+          triggerSmartAlarmAction(alarm, config, entityData.isActive);
           }
         }
       });
-    }
-  }
-
-  // Check for team messages and other message types
-  if (message.broadcast && message.broadcast.teamMessage) {
-    const teamMessage = message.broadcast.teamMessage;
-    console.log(`💬 Team Message: ${teamMessage.message}`);
-    
-    // Check smart alarms for team message content filtering
-    if (config.smartAlarms && config.smartAlarms.length > 0) {
-      config.smartAlarms.forEach((alarm, index) => {
-        if (alarm.enabled && alarm.messageFilter && alarm.messageFilter.trim() !== '') {
-          const messageContent = teamMessage.message.toLowerCase();
-          const filterContent = alarm.messageFilter.toLowerCase();
-          
-          if (messageContent.includes(filterContent)) {
-            console.log(`🚨 Smart alarm triggered by team message: ${alarm.name}`);
-            triggerSmartAlarmAction(alarm, config);
-          }
-        }
-      });
-    }
-  }
-
-  // Log any other message types
-  if (message.broadcast) {
-    console.log('📡 Broadcast message type:', Object.keys(message.broadcast));
   }
 }
 
@@ -688,48 +596,41 @@ async function triggerSmartAlarmAction(alarm, config, entityValue = null) {
   }
 }
 
-// Send Rust+ notification
+// Send Rust+ notification via WebSocket
 async function sendRustPlusNotification(message) {
-  if (!rustPlusClient) {
-    console.log('Rust+ client not available, skipping notification');
+  const config = loadConfig();
+  if (!config.selectedServerId) {
+    console.log('No server selected, skipping Rust+ notification');
+    return;
+  }
+
+  const client = initializeWebSocketClient();
+  if (!client.isConnected) {
+    console.log('WebSocket not connected, skipping Rust+ notification');
     return;
   }
 
   try {
-    // Wait for connection using the connected event (following the example pattern)
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Connection timeout'));
-      }, 10000); // 10 second timeout
-
-      rustPlusClient.once('connected', () => {
-        clearTimeout(timeout);
-        resolve();
-      });
-
-      rustPlusClient.once('error', (error) => {
-        clearTimeout(timeout);
-        reject(error);
-      });
-    });
-
-    // Now send the message after connection is established
-    await rustPlusClient.sendTeamMessage(message);
+    const success = client.sendTeamMessage(config.selectedServerId, message);
+    if (success) {
     console.log('✅ Rust+ notification sent:', message);
+    } else {
+      console.error('❌ Failed to send Rust+ notification');
+    }
   } catch (error) {
     console.error('❌ Failed to send Rust+ notification:', error);
     throw error;
   }
 }
 
-// Disconnect from Rust+ server
+// Disconnect from WebSocket
 async function disconnectFromRustPlus() {
-  if (rustPlusClient && rustPlusClient.isConnected()) {
+  if (rustPlusWSClient) {
     try {
-      await rustPlusClient.disconnect();
-      console.log('✅ Disconnected from Rust+ server');
+      rustPlusWSClient.disconnect();
+      console.log('✅ Disconnected from WebSocket');
     } catch (error) {
-      console.error('Error disconnecting from Rust+ server:', error);
+      console.error('Error disconnecting from WebSocket:', error);
     }
   }
 }
@@ -886,136 +787,34 @@ app.post('/api/test-discord', async (req, res) => {
   }
 });
 
-// Register FCM credentials
-app.post('/api/rust-plus/register-fcm', async (req, res) => {
-  try {
-    console.log('🔧 Registering FCM credentials...');
-    
-    const credentials = await registerFCM();
-    
-    // Save credentials to config
-    const config = loadConfig();
-    const updatedConfig = {
-      ...config,
-      fcmCredentials: credentials
-    };
-    
-    if (saveConfig(updatedConfig)) {
-      res.json({ 
-        success: true, 
-        message: 'FCM credentials registered successfully',
-        credentials: credentials
-      });
-    } else {
-      res.status(500).json({ success: false, error: 'Failed to save FCM credentials' });
-    }
-  } catch (error) {
-    console.error('FCM registration failed:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Register with Rust+ API using auth token
-app.post('/api/rust-plus/register-rustplus', async (req, res) => {
-  try {
-    const { authToken } = req.body;
-    
-    if (!authToken) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Auth token is required' 
-      });
-    }
-    
-    const config = loadConfig();
-    
-    if (!config.fcmCredentials || !config.fcmCredentials.expoPushToken) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'FCM credentials missing. Please register FCM first.' 
-      });
-    }
-    
-    console.log('🔧 Registering with Rust+ API...');
-    await registerWithRustPlus(authToken, config.fcmCredentials.expoPushToken);
-    
-    // Save auth token to config
-    const updatedConfig = {
-      ...config,
-      rustPlusAuthToken: authToken
-    };
-    
-    if (saveConfig(updatedConfig)) {
-      console.log('✅ Successfully registered with Rust+ API');
-      res.json({ 
-        success: true, 
-        message: 'Successfully registered with Rust+ API' 
-      });
-    } else {
-      res.status(500).json({ success: false, error: 'Failed to save auth token' });
-    }
-  } catch (error) {
-    console.error('Rust+ registration failed:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Start FCM listening
-app.post('/api/rust-plus/start-fcm-listen', async (req, res) => {
-  try {
-    const config = loadConfig();
-    
-    if (!config.fcmCredentials) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'FCM credentials missing. Please register FCM first.' 
-      });
-    }
-    
-    console.log('📡 Starting FCM listener...');
-    await fcmListen(config);
-    
-    res.json({ 
-      success: true, 
-      message: 'FCM listener started. Waiting for Rust+ pairing notification...' 
-    });
-  } catch (error) {
-    console.error('FCM listen failed:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Test Rust+ connection
+// Test WebSocket connection
 app.post('/api/test-rust-plus', async (req, res) => {
   try {
-    const { serverIP, serverPort, playerId, playerToken } = req.body;
+    const config = loadConfig();
     
-    if (!serverIP || !playerId || !playerToken) {
-      return res.status(400).json({ success: false, error: 'Server IP, Player ID, and Player Token are required' });
+    if (!config.selectedServerId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No server selected. Please select a server first.' 
+      });
     }
     
-    const testConfig = {
-      rustPlusEnabled: true,
-      rustPlusServerIP: serverIP,
-      rustPlusServerPort: parseInt(serverPort) || 28082,
-      rustPlusPlayerId: playerId,
-      rustPlusPlayerToken: playerToken
-    };
+    const client = initializeWebSocketClient();
     
-    // Test connection
-    const testClient = await connectToRustPlus(testConfig);
-    
-    if (testClient) {
-      // Send test message
-      await sendRustPlusNotification('🧪 Rust+ Test Notification - This is a test message from your Rust Booter system!');
-      
-      // Disconnect test client
-      await disconnectFromRustPlus();
-      
-      res.json({ success: true, message: 'Rust+ test notification sent successfully' });
-    } else {
-      res.status(500).json({ success: false, error: 'Failed to connect to Rust+ server' });
+    if (!client.isConnected) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'WebSocket not connected' 
+      });
     }
+    
+    // Send test message
+    await sendRustPlusNotification('🧪 Rust+ Test Notification - This is a test message from your Rust Booter system!');
+    
+      res.json({ 
+        success: true, 
+      message: 'Rust+ test notification sent successfully' 
+    });
   } catch (error) {
     console.error('Rust+ test failed:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1064,50 +863,176 @@ app.put('/api/detected-entities/:id', (req, res) => {
   }
 });
 
-// Get Rust+ connection status
+// Get WebSocket connection status
 app.get('/api/rust-plus-status', (req, res) => {
   try {
-    const config = loadConfig();
-    
-    if (!config.rustPlusServerIP || !config.rustPlusPlayerId || !config.rustPlusPlayerToken) {
-      return res.json({ 
-        connected: false, 
-        connecting: false, 
-        error: 'No Rust+ credentials configured' 
-      });
-    }
-    
-    if (!rustPlusClient) {
-      return res.json({ 
-        connected: false, 
-        connecting: false, 
-        error: 'Rust+ client not initialized' 
-      });
-    }
-    
-    let connected = false;
-    let connecting = false;
-    
-    try {
-      connected = rustPlusClient.isConnected();
-      connecting = !connected && config.rustPlusServerIP; // Assume connecting if we have credentials but not connected
-    } catch (error) {
-      console.log('⚠️ Error checking Rust+ connection status:', error.message);
-      connected = false;
-      connecting = false;
-    }
+    const client = initializeWebSocketClient();
     
     res.json({ 
-      connected: connected,
-      connecting: connecting,
-      serverIP: config.rustPlusServerIP,
-      serverPort: config.rustPlusServerPort,
-      serverName: config.rustPlusServerName
+      connected: client.isConnected,
+      connecting: client.isConnecting,
+      selectedServerId: client.selectedServerId
     });
   } catch (error) {
     res.status(500).json({ 
-      connected: false, 
-      connecting: false, 
+        connected: false, 
+        connecting: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Get available servers
+app.get('/api/rust-plus/servers', (req, res) => {
+  try {
+    const client = initializeWebSocketClient();
+    res.json({ 
+      success: true, 
+      servers: client.servers 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Get entities for a specific server
+app.get('/api/rust-plus/servers/:serverId/entities', (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const client = initializeWebSocketClient();
+    
+    if (!client.servers[serverId]) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Server not found' 
+      });
+    }
+    
+    const server = client.servers[serverId];
+    const entities = [];
+    
+    // Add switches
+    if (server.switches) {
+      server.switches.forEach(switchEntity => {
+        entities.push({
+          id: switchEntity.entityId,
+          name: switchEntity.entityName || `Switch ${switchEntity.entityId}`,
+          type: switchEntity.entityType || 'switch',
+          serverId: serverId,
+          serverName: server.name
+        });
+      });
+    }
+    
+    // Add alarms
+    if (server.alarms) {
+      server.alarms.forEach(alarmEntity => {
+        entities.push({
+          id: alarmEntity.entityId,
+          name: alarmEntity.entityName || `Alarm ${alarmEntity.entityId}`,
+          type: alarmEntity.entityType || 'alarm',
+          serverId: serverId,
+          serverName: server.name
+        });
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      entities: entities 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Select a server
+app.post('/api/rust-plus/select-server', (req, res) => {
+  try {
+    const { serverId } = req.body;
+    
+    if (!serverId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Server ID is required' 
+      });
+    }
+    
+    selectServer(serverId);
+    
+    res.json({ 
+      success: true, 
+      message: 'Server selected successfully' 
+    });
+    } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Get server info
+app.get('/api/rust-plus/server-info/:serverId', (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const client = initializeWebSocketClient();
+    
+    if (client.isConnected) {
+      client.getServerInfo(serverId);
+    res.json({ 
+        success: true, 
+        message: 'Server info request sent' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'WebSocket not connected' 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Toggle switch
+app.post('/api/rust-plus/toggle-switch', (req, res) => {
+  try {
+    const { serverId, entityId } = req.body;
+    
+    if (!serverId || !entityId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Server ID and Entity ID are required' 
+      });
+    }
+    
+    const client = initializeWebSocketClient();
+    
+    if (client.isConnected) {
+      const success = client.toggleSwitch(serverId, entityId);
+    res.json({ 
+        success: success, 
+        message: success ? 'Switch toggle request sent' : 'Failed to send toggle request' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'WebSocket not connected' 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
       error: error.message 
     });
   }
@@ -1320,31 +1245,11 @@ app.listen(PORT, async () => {
   const config = loadConfig();
   console.log('Configuration loaded successfully');
   
-  // Start FCM listener if we have credentials
-  if (config.fcmCredentials && config.fcmCredentials.fcm && config.fcmCredentials.fcm.token) {
-    console.log('🔧 Starting FCM listener on startup...');
-    fcmListen(config);
-  } else {
-    console.log('⚠️ No FCM credentials found - FCM listener not started');
-  }
+  // Initialize WebSocket client
+  console.log('🔗 Initializing WebSocket client...');
+  initializeWebSocketClient();
   
-  // Connect to Rust+ if server is paired (but wait a bit to see if FCM updates the server IP)
-  if (config.rustPlusServerIP && config.rustPlusPlayerId && config.rustPlusPlayerToken) {
-    console.log('🔗 Will attempt Rust+ connection after FCM listener stabilizes...');
-    // Wait 5 seconds to see if FCM notifications update the server IP
-    setTimeout(async () => {
-      const currentConfig = loadConfig();
-      if (currentConfig.rustPlusServerIP && currentConfig.rustPlusPlayerId && currentConfig.rustPlusPlayerToken) {
-        console.log('🔗 Connecting to Rust+ server...');
-        await connectToRustPlus(currentConfig);
-      }
-    }, 5000);
-  } else {
-    console.log('⚠️ No Rust+ server paired - skipping connection');
-  }
-  
-  // Start connection health check (only if we have server credentials)
-  if (config.rustPlusServerIP && config.rustPlusPlayerId && config.rustPlusPlayerToken) {
+  // Start connection health check
     startConnectionHealthCheck(config);
-  }
 });
+

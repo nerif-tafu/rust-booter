@@ -390,54 +390,22 @@
                     <h3>🎮 Rust+ Notifications</h3>
                     
                     <div id="rustPlusSettings">
-                        <!-- Step 1: Update Rust+ Token -->
-                        <div id="step1" class="rust-step">
-                            <h4>Step 1: Update Rust+ Token</h4>
-                            <p>Use your Firefox extension to get a fresh Rust+ token:</p>
-            <div class="button-group">
-                                <button type="button" class="btn-primary" onclick="updateRustPlusToken()" id="updateTokenBtn">
-                                    🔄 Update Rust+ Token
-                                </button>
-                            </div>
-                            <div id="tokenStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
-                                <div id="tokenInfo" style="color: #6c757d; font-style: italic;">No token stored</div>
-            </div>
-        </div>
-        
-                        <!-- Step 2: Pair with Rust Server -->
-                        <div id="step2" class="rust-step" style="display: none;">
-                            <h4>Step 2: Pair with Rust Server</h4>
-                            <p>Start FCM listening and pair with your Rust server:</p>
-        <div class="button-group">
-                                <button type="button" class="btn-primary" onclick="startFCMPairing()" id="startFCMPairingBtn">
-                                    🔗 Start FCM Pairing
-            </button>
-                            </div>
-                            <div id="fcmStatus" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
-                                <div id="fcmInfo" style="color: #6c757d; font-style: italic;">FCM not started</div>
-                            </div>
-                            <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                                After clicking the button, go to your Rust server and pair with it. The connection details will be automatically captured.
-                            </p>
-                        </div>
-
-                        <!-- Step 3: Status and Test -->
-                        <div id="step3" class="rust-step" style="display: none;">
-                            <h4>Step 3: Connected & Ready</h4>
-                            <div id="serverStatus" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
-                                <div id="serverInfo" style="color: #6c757d; font-style: italic;">No server paired</div>
+                        <!-- Server Selection -->
+                        <div class="rust-step">
+                            <h4>Select Server</h4>
+                            <div class="form-group">
+                                <label for="serverSelect">Available Servers:</label>
+                                <select id="serverSelect" onchange="selectServer(this.value)" style="width: 100%; padding: 12px 15px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 16px;">
+                                    <option value="">-- Select a server --</option>
+                                </select>
                             </div>
                             <div class="button-group">
-                                <button type="button" class="btn-secondary" onclick="testRustPlus()" id="testRustPlusBtn" disabled>Test Rust+ Connection</button>
-                                <button type="button" class="btn-secondary" onclick="restartPairing()" id="restartPairingBtn">🔄 Restart Pairing</button>
+                                <button type="button" class="btn-secondary" onclick="refreshServers()" id="refreshServersBtn">🔄 Refresh Servers</button>
+                            </div>
+                            <div id="selectedServerInfo" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef; display: none;">
+                                <div id="serverDetails" style="color: #6c757d; font-style: italic;"></div>
                             </div>
                         </div>
-                        
-                        <!-- Hidden fields for sensitive data -->
-                        <input type="hidden" id="rustPlusServerIP">
-                        <input type="hidden" id="rustPlusServerPort" value="28082">
-                        <input type="hidden" id="rustPlusPlayerId">
-                        <input type="hidden" id="rustPlusPlayerToken">
                     </div>
                 </div>
             </div>
@@ -452,15 +420,6 @@
             <div class="config-section">
                 <h3>🚨 Smart Alarms</h3>
                 <p style="color: #6c757d; margin-bottom: 20px;">List of smart alarms that have been paired with your Rust server.</p>
-                
-                <!-- FCM Status -->
-                <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-                    <h4 style="margin: 0 0 10px 0; color: #495057;">📡 FCM Listener Status</h4>
-                    <div id="fcmStatusInfo" style="color: #6c757d; font-style: italic;">Checking FCM status...</div>
-                    <div class="button-group" style="margin-top: 10px;">
-                        <button type="button" class="btn-primary" onclick="startFCMListener()" id="startFCMBtn">🔧 Start FCM Listener</button>
-                    </div>
-                </div>
                 
                 <div id="smartAlarmsList">
                     <!-- Smart alarms will be dynamically added here -->
@@ -500,15 +459,13 @@
     </div>
 
     <script type="module">
-        import { fetchRustPlusData, getStoredRustPlusData } from './fetch-rustplus-data.js';
         
         // Load configuration on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadConfig();
             loadTabFromHash();
-            updateFCMStatus();
             loadActions();
-            startRustPlusStatusUpdates();
+            startEntityStatusUpdates();
         });
 
         async function loadConfig() {
@@ -524,13 +481,19 @@
                 // Load Discord settings
                 document.getElementById('discordWebhookURL').value = config.discordWebhookURL || '';
                 
-                // Update status displays
-                updateFCMStatus(config);
-                updateServerStatus(config);
-                updateTokenStatus(config);
-                
-                // Show appropriate step based on current state
-                updateRustPlusSteps(config);
+                // Load servers and restore selected server
+                await loadServers();
+                if (config.selectedServerId) {
+                    document.getElementById('serverSelect').value = config.selectedServerId;
+                    // Update the selected server info display
+                    const serverSelect = document.getElementById('serverSelect');
+                    const selectedOption = serverSelect.options[serverSelect.selectedIndex];
+                    if (selectedOption && selectedOption.value) {
+                        const serverName = selectedOption.textContent;
+                        document.getElementById('serverDetails').innerHTML = `Selected: ${serverName}`;
+                        document.getElementById('selectedServerInfo').style.display = 'block';
+                    }
+                }
                 
                 // Load smart alarms
                 loadSmartAlarms();
@@ -546,10 +509,7 @@
                 rustServerIP: document.getElementById('rustServerIP').value.trim(),
                 rustServerPort: parseInt(document.getElementById('rustServerPort').value) || 28015,
                 discordWebhookURL: document.getElementById('discordWebhookURL').value.trim(),
-                rustPlusServerIP: document.getElementById('rustPlusServerIP').value.trim(),
-                rustPlusServerPort: parseInt(document.getElementById('rustPlusServerPort').value) || 28082,
-                rustPlusPlayerId: document.getElementById('rustPlusPlayerId').value.trim(),
-                rustPlusPlayerToken: document.getElementById('rustPlusPlayerToken').value.trim()
+                selectedServerId: document.getElementById('serverSelect').value
             };
 
             // Basic validation
@@ -583,86 +543,90 @@
 
 
 
-        async function updateRustPlusToken() {
-            const updateButton = document.getElementById('updateTokenBtn');
-            const originalText = updateButton.innerHTML;
-            
-            // Disable button and show loading
-            updateButton.disabled = true;
-            updateButton.innerHTML = '<div class="loading"></div>Fetching Token...';
-            
-            showStatus('Opening Rust+ login...', 'info');
+        // WebSocket Functions
 
+        async function loadServers() {
             try {
-                const data = await fetchRustPlusData();
+                const response = await fetch('/api/rust-plus/servers');
+                const result = await response.json();
                 
-                if (data && data.SteamId && data.Token) {
-                    // Update the hidden fields with the new data
-                    document.getElementById('rustPlusPlayerId').value = data.SteamId;
-                    document.getElementById('rustPlusPlayerToken').value = data.Token;
-                    
-                    // Save the config with the new token
-                    await saveConfig();
-                    
-                    showStatus('✅ Rust+ token updated successfully!', 'success');
-                    
-                    // Reload config to update status and progress to next step
-                    loadConfig();
-                } else {
-                    showStatus('❌ Failed to get Rust+ token from extension', 'error');
+                const serverSelect = document.getElementById('serverSelect');
+                serverSelect.innerHTML = '<option value="">-- Select a server --</option>';
+                
+                if (result.success && result.servers) {
+                    Object.entries(result.servers).forEach(([serverId, server]) => {
+                        const option = document.createElement('option');
+                        option.value = serverId;
+                        option.textContent = `${server.name} (${server.status})`;
+                        serverSelect.appendChild(option);
+                    });
                 }
             } catch (error) {
-                showStatus('❌ Failed to update Rust+ token: ' + error.message, 'error');
+                console.error('Failed to load servers:', error);
+                showStatus('❌ Failed to load servers: ' + error.message, 'error');
+            }
+        }
+
+        async function refreshServers() {
+            const refreshBtn = document.getElementById('refreshServersBtn');
+            const originalText = refreshBtn.textContent;
+            
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '⏳ Refreshing...';
+            
+            try {
+                await loadServers();
+                showStatus('✅ Servers refreshed', 'success');
+            } catch (error) {
+                showStatus('❌ Failed to refresh servers: ' + error.message, 'error');
             } finally {
-                // Re-enable button
-                updateButton.disabled = false;
-                updateButton.innerHTML = originalText;
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = originalText;
             }
         }
 
-        let pairingPollInterval = null;
-
-        function startPairingPolling() {
-            // Clear any existing polling
-            if (pairingPollInterval) {
-                clearInterval(pairingPollInterval);
+        async function selectServer(serverId) {
+            if (!serverId) {
+                document.getElementById('selectedServerInfo').style.display = 'none';
+                // Save config to clear the selected server
+                await saveConfig();
+                return;
             }
-            
-            let pollCount = 0;
-            const maxPolls = 60; // 2 minutes max (2 seconds * 60)
-            
-            pairingPollInterval = setInterval(async () => {
-                pollCount++;
+
+            try {
+                const response = await fetch('/api/rust-plus/select-server', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ serverId })
+                });
+
+                const result = await response.json();
                 
-                try {
-                    const response = await fetch('/api/config');
-                    const config = await response.json();
+                if (result.success) {
+                    const serverSelect = document.getElementById('serverSelect');
+                    const selectedOption = serverSelect.options[serverSelect.selectedIndex];
+                    const serverName = selectedOption.textContent;
                     
-                    // Check if server has been paired
-                    if (config.rustPlusServerIP) {
-                        clearInterval(pairingPollInterval);
-                        pairingPollInterval = null;
-                        showStatus('✅ Server paired successfully!', 'success');
-                        // Reload config to update UI and progress to step 3
-                        loadConfig();
-                        return;
-                    }
+                    document.getElementById('serverDetails').innerHTML = `Selected: ${serverName}`;
+                    document.getElementById('selectedServerInfo').style.display = 'block';
                     
-                    // Timeout after max polls
-                    if (pollCount >= maxPolls) {
-                        clearInterval(pairingPollInterval);
-                        pairingPollInterval = null;
-                        showStatus('⏰ Pairing timeout - please try again', 'error');
-                    }
-                } catch (error) {
-                    if (pollCount >= maxPolls) {
-                        clearInterval(pairingPollInterval);
-                        pairingPollInterval = null;
-                        showStatus('❌ Error checking pairing status', 'error');
-                    }
+                    // Save the configuration with the selected server
+                    await saveConfig();
+                    
+                    // Reload smart alarms for the selected server
+                    await loadSmartAlarms();
+                    
+                    showStatus('✅ Server selected successfully', 'success');
+                } else {
+                    showStatus('❌ Failed to select server: ' + result.error, 'error');
                 }
-            }, 2000); // Poll every 2 seconds
+            } catch (error) {
+                showStatus('❌ Failed to select server: ' + error.message, 'error');
+            }
         }
+
 
         // Smart Alarm Functions
         let smartAlarms = [];
@@ -671,11 +635,38 @@
 
         async function loadSmartAlarms() {
             try {
-                const entitiesResponse = await fetch('/api/detected-entities');
-                const entitiesResult = await entitiesResponse.json();
+                // First try to get entities from the selected server
+                const config = await fetch('/api/config').then(r => r.json());
+                if (config.selectedServerId) {
+                    try {
+                        const entitiesResponse = await fetch(`/api/rust-plus/servers/${config.selectedServerId}/entities`);
+                        const entitiesResult = await entitiesResponse.json();
+                        
+                        if (entitiesResult.success) {
+                            // Convert array to object format expected by the UI
+                            detectedEntities = {};
+                            entitiesResult.entities.forEach(entity => {
+                                detectedEntities[entity.id] = {
+                                    ...entity,
+                                    lastValue: false,
+                                    lastChanged: new Date().toISOString(),
+                                    paired: true
+                                };
+                            });
+                        }
+                    } catch (error) {
+                        console.log('Failed to load entities from selected server, falling back to detected entities');
+                    }
+                }
                 
-                if (entitiesResult.success) {
-                    detectedEntities = entitiesResult.entities || {};
+                // Fallback to detected entities if no server selected or server entities failed
+                if (Object.keys(detectedEntities).length === 0) {
+                    const entitiesResponse = await fetch('/api/detected-entities');
+                    const entitiesResult = await entitiesResponse.json();
+                    
+                    if (entitiesResult.success) {
+                        detectedEntities = entitiesResult.entities || {};
+                    }
                 }
                 
                 renderSmartAlarms();
@@ -690,16 +681,11 @@
 
         async function refreshDetectedEntities() {
             try {
-                const response = await fetch('/api/detected-entities');
-                const result = await response.json();
-                
-                if (result.success) {
-                    detectedEntities = result.entities || {};
-                    renderSmartAlarms();
-                    showStatus('✅ Entities refreshed', 'success');
-                } else {
-                    showStatus('❌ Failed to refresh entities: ' + result.error, 'error');
-                }
+                // Refresh servers first to get latest entity data
+                await loadServers();
+                // Then reload smart alarms
+                await loadSmartAlarms();
+                showStatus('✅ Entities refreshed', 'success');
             } catch (error) {
                 console.error('Failed to refresh detected entities:', error);
                 showStatus('❌ Failed to refresh entities: ' + error.message, 'error');
@@ -1066,72 +1052,6 @@
             }
         }
 
-        // FCM Status Functions
-        async function updateFCMStatus() {
-            try {
-                const response = await fetch('/api/config');
-                const config = await response.json();
-                
-                const fcmStatusElement = document.getElementById('fcmStatusInfo');
-                const startFCMBtn = document.getElementById('startFCMBtn');
-                
-                if (config.fcmCredentials && config.fcmCredentials.fcm && config.fcmCredentials.fcm.token) {
-                    fcmStatusElement.innerHTML = '✅ FCM credentials available - Listener should be running';
-                    fcmStatusElement.style.color = '#28a745';
-                    startFCMBtn.textContent = '🔄 Restart FCM Listener';
-                } else {
-                    fcmStatusElement.innerHTML = '⚠️ No FCM credentials found - Please update Rust+ token first';
-                    fcmStatusElement.style.color = '#dc3545';
-                    startFCMBtn.textContent = '🔧 Start FCM Listener';
-                }
-            } catch (error) {
-                console.error('Failed to update FCM status:', error);
-                const fcmStatusElement = document.getElementById('fcmStatusInfo');
-                fcmStatusElement.innerHTML = '❌ Failed to check FCM status';
-                fcmStatusElement.style.color = '#dc3545';
-            }
-        }
-
-        async function startFCMListener() {
-            try {
-                const startFCMBtn = document.getElementById('startFCMBtn');
-                const fcmStatusElement = document.getElementById('fcmStatusInfo');
-                
-                startFCMBtn.disabled = true;
-                startFCMBtn.textContent = '⏳ Starting FCM...';
-                fcmStatusElement.innerHTML = '⏳ Starting FCM listener...';
-                fcmStatusElement.style.color = '#6c757d';
-                
-                const response = await fetch('/api/rust-plus/start-fcm-listen', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    fcmStatusElement.innerHTML = '✅ FCM listener started - Waiting for pairing notifications...';
-                    fcmStatusElement.style.color = '#28a745';
-                    showStatus('✅ FCM listener started successfully', 'success');
-                } else {
-                    fcmStatusElement.innerHTML = '❌ Failed to start FCM listener: ' + result.error;
-                    fcmStatusElement.style.color = '#dc3545';
-                    showStatus('❌ Failed to start FCM listener: ' + result.error, 'error');
-                }
-            } catch (error) {
-                console.error('Failed to start FCM listener:', error);
-                const fcmStatusElement = document.getElementById('fcmStatusInfo');
-                fcmStatusElement.innerHTML = '❌ Failed to start FCM listener: ' + error.message;
-                fcmStatusElement.style.color = '#dc3545';
-                showStatus('❌ Failed to start FCM listener: ' + error.message, 'error');
-            } finally {
-                const startFCMBtn = document.getElementById('startFCMBtn');
-                startFCMBtn.disabled = false;
-                startFCMBtn.textContent = '🔄 Restart FCM Listener';
-            }
-        }
 
         // Actions Functions
         async function addAction() {
@@ -1366,11 +1286,49 @@
         }
 
 
+        // Start periodic entity status updates
+        function startEntityStatusUpdates() {
+            setInterval(async () => {
+                // Only update if we're on the smart alarms tab
+                const smartAlarmsTab = document.getElementById('smart-alarms-tab');
+                if (smartAlarmsTab && smartAlarmsTab.classList.contains('active')) {
+                    await refreshEntityStatus();
+                }
+            }, 2000); // Check every 2 seconds
+        }
+
+        // Refresh entity status without full reload
+        async function refreshEntityStatus() {
+            try {
+                const response = await fetch('/api/detected-entities');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const newEntities = result.entities || {};
+                    let hasChanges = false;
+                    
+                    // Check if any entity status has changed
+                    Object.keys(newEntities).forEach(entityId => {
+                        const newEntity = newEntities[entityId];
+                        const oldEntity = detectedEntities[entityId];
+                        
+                        if (!oldEntity || oldEntity.lastValue !== newEntity.lastValue || 
+                            oldEntity.lastChanged !== newEntity.lastChanged) {
+                            hasChanges = true;
+                        }
+                    });
+                    
+                    if (hasChanges) {
+                        detectedEntities = newEntities;
+                        renderSmartAlarms();
+                    }
+                }
+            } catch (error) {
+                // Silently fail - don't spam console with errors
+            }
+        }
+
         // Make functions globally accessible
-        window.updateRustPlusToken = updateRustPlusToken;
-        window.startFCMPairing = startFCMPairing;
-        window.testRustPlus = testRustPlus;
-        window.restartPairing = restartPairing;
         window.saveConfig = saveConfig;
         window.addSmartAlarm = addSmartAlarm;
         window.updateAlarmField = updateAlarmField;
@@ -1382,8 +1340,9 @@
         window.testAction = testAction;
         window.wakeUpPC = wakeUpPC;
         window.testDiscord = testDiscord;
-        window.updateFCMStatus = updateFCMStatus;
-        window.startFCMListener = startFCMListener;
+        window.loadServers = loadServers;
+        window.refreshServers = refreshServers;
+        window.selectServer = selectServer;
         window.addAction = addAction;
         window.updateEntityName = updateEntityName;
         window.loadActions = loadActions;
@@ -1391,319 +1350,10 @@
         window.toggleActionEnabled = toggleActionEnabled;
         window.deleteAction = deleteAction;
 
-        function updateRustPlusSteps(config) {
-            const step1 = document.getElementById('step1');
-            const step2 = document.getElementById('step2');
-            const step3 = document.getElementById('step3');
-            
-            // Check if elements exist
-            if (!step1 || !step2 || !step3) return;
-            
-            // Hide all steps first
-            step1.style.display = 'none';
-            step2.style.display = 'none';
-            step3.style.display = 'none';
-            
-            // Show step 1 if no token
-            if (!config.rustPlusPlayerId || !config.rustPlusPlayerToken) {
-                step1.style.display = 'block';
-                return;
-            }
-            
-            // Show step 2 if no FCM credentials OR no server paired
-            if (!config.fcmCredentials || !config.rustPlusServerIP) {
-                step2.style.display = 'block';
-                return;
-            }
-            
-            // Show step 3 only if we have token, FCM credentials, AND server paired
-            if (config.rustPlusPlayerId && config.rustPlusPlayerToken && 
-                config.fcmCredentials && config.rustPlusServerIP) {
-                step3.style.display = 'block';
-            }
-        }
-
-        function updateServerStatus(config) {
-            const serverInfo = document.getElementById('serverInfo');
-            
-            if (!serverInfo) return;
-            
-            if (config.rustPlusServerIP) {
-                const serverName = config.rustPlusServerName || 'Unknown Server';
-                // Check Rust+ connection status
-                checkRustPlusConnectionStatus(serverInfo, serverName, config);
-            } else {
-                serverInfo.innerHTML = 'No server paired';
-                serverInfo.style.color = '#6c757d';
-            }
-        }
-
-        async function checkRustPlusConnectionStatus(serverInfo, serverName, config) {
-            try {
-                const response = await fetch('/api/rust-plus-status');
-                const result = await response.json();
-                
-                if (result.connected) {
-                    serverInfo.innerHTML = `🟢 Rust+ Connected: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
-                    serverInfo.style.color = '#28a745';
-                } else if (result.connecting) {
-                    serverInfo.innerHTML = `🟡 Rust+ Connecting: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
-                    serverInfo.style.color = '#ffc107';
-                } else {
-                    serverInfo.innerHTML = `🔴 Rust+ Disconnected: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
-                    serverInfo.style.color = '#dc3545';
-                }
-            } catch (error) {
-                serverInfo.innerHTML = `❓ Rust+ Status Unknown: ${serverName} (${config.rustPlusServerIP}:${config.rustPlusServerPort || 28082})`;
-                serverInfo.style.color = '#6c757d';
-            }
-        }
-
-        // Periodically update Rust+ connection status
-        function startRustPlusStatusUpdates() {
-            setInterval(async () => {
-                const config = await loadConfig();
-                if (config.rustPlusServerIP) {
-                    updateServerStatus(config);
-                }
-            }, 5000); // Update every 5 seconds
-        }
-
-        function updateTokenStatus(config) {
-            const tokenInfo = document.getElementById('tokenInfo');
-            const testRustPlusBtn = document.getElementById('testRustPlusBtn');
-            
-            if (!tokenInfo) return;
-            
-            if (config.rustPlusPlayerId && config.rustPlusPlayerToken) {
-                // Try to get stored data to show actual expiration
-                getStoredRustPlusData().then(data => {
-                    if (data && data.expiresInDays) {
-                        if (data.expiresInDays > 0) {
-                            tokenInfo.innerHTML = `✅ Token valid for ${data.expiresInDays} days`;
-                            tokenInfo.style.color = '#28a745';
-                        } else {
-                            tokenInfo.innerHTML = '❌ Token expired - please update';
-                            tokenInfo.style.color = '#dc3545';
-                        }
-                    } else {
-                        // Fallback to generic message
-                        tokenInfo.innerHTML = '✅ Token stored';
-                        tokenInfo.style.color = '#28a745';
-                    }
-                    if (testRustPlusBtn) {
-                        testRustPlusBtn.disabled = false;
-                    }
-                }).catch(() => {
-                    // Fallback to generic message
-                    tokenInfo.innerHTML = '✅ Token stored';
-                    tokenInfo.style.color = '#28a745';
-                    if (testRustPlusBtn) {
-                        testRustPlusBtn.disabled = false;
-                    }
-                });
-            } else {
-                tokenInfo.innerHTML = 'No token stored';
-                tokenInfo.style.color = '#6c757d';
-                if (testRustPlusBtn) {
-                    testRustPlusBtn.disabled = true;
-                }
-            }
-        }
 
 
-        async function startFCMPairing() {
-            const pairingButton = document.getElementById('startFCMPairingBtn');
-            const originalText = pairingButton.innerHTML;
-            
-            // Disable button and show loading
-            pairingButton.disabled = true;
-            pairingButton.innerHTML = '<div class="loading"></div>Starting FCM...';
-            
-            showStatus('Starting FCM pairing process...', 'info');
 
-            try {
-                // Step 1: Register FCM credentials
-                showStatus('Registering FCM credentials...', 'info');
-                const registerResponse = await fetch('/api/rust-plus/register-fcm', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
 
-                const registerResult = await registerResponse.json();
-                
-                if (!registerResult.success) {
-                    throw new Error('FCM registration failed: ' + registerResult.error);
-                }
-
-                // Step 2: Register with Rust+ API (if we have auth token)
-                const config = await fetch('/api/config').then(r => r.json());
-                if (config.rustPlusPlayerToken) {
-                    showStatus('Registering with Rust+ API...', 'info');
-                    const rustPlusResponse = await fetch('/api/rust-plus/register-rustplus', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            authToken: config.rustPlusPlayerToken
-                        })
-                    });
-
-                    const rustPlusResult = await rustPlusResponse.json();
-                    if (!rustPlusResult.success) {
-                        console.warn('Rust+ API registration failed:', rustPlusResult.error);
-                    }
-                }
-
-                // Step 3: Start FCM listening
-                showStatus('Starting FCM listener...', 'info');
-                const listenResponse = await fetch('/api/rust-plus/start-fcm-listen', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const listenResult = await listenResponse.json();
-                
-                if (listenResult.success) {
-                    showStatus('✅ FCM pairing started! Now pair with your Rust server in-game. Waiting for pairing notification...', 'success');
-                    // Re-enable button and update text
-                    pairingButton.disabled = false;
-                    pairingButton.innerHTML = '⏳ Waiting for Pairing...';
-                    // Start polling for server pairing status
-                    startPairingPolling();
-                } else {
-                    throw new Error('FCM listen failed: ' + listenResult.error);
-                }
-            } catch (error) {
-                showStatus('❌ FCM pairing failed: ' + error.message, 'error');
-                // Re-enable button on error
-                pairingButton.disabled = false;
-                pairingButton.innerHTML = originalText;
-            }
-        }
-
-        async function testRustPlus() {
-            const testButton = document.getElementById('testRustPlusBtn');
-            const originalText = testButton.innerHTML;
-            
-            // Disable button and show loading
-            testButton.disabled = true;
-            testButton.innerHTML = '<div class="loading"></div>Testing...';
-            
-            showStatus('Testing Rust+ connection...', 'info');
-
-            try {
-                // Get current config to ensure we have the latest data
-                const configResponse = await fetch('/api/config');
-                const config = await configResponse.json();
-                
-                if (!config.rustPlusServerIP || !config.rustPlusPlayerId || !config.rustPlusPlayerToken) {
-                    showStatus('Please pair with a Rust server first using FCM', 'error');
-                    return;
-                }
-
-                const response = await fetch('/api/test-rust-plus', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        serverIP: config.rustPlusServerIP,
-                        serverPort: config.rustPlusServerPort || 28082,
-                        playerId: config.rustPlusPlayerId,
-                        playerToken: config.rustPlusPlayerToken
-                    })
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showStatus('✅ Rust+ test notification sent successfully!', 'success');
-                } else {
-                    showStatus('❌ Rust+ test failed: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showStatus('❌ Rust+ test failed: ' + error.message, 'error');
-            } finally {
-                // Re-enable button
-                testButton.disabled = false;
-                testButton.innerHTML = originalText;
-            }
-        }
-
-        async function restartPairing() {
-            const restartButton = document.getElementById('restartPairingBtn');
-            const originalText = restartButton.innerHTML;
-            
-            // Disable button and show loading
-            restartButton.disabled = true;
-            restartButton.innerHTML = '<div class="loading"></div>Checking...';
-            
-            showStatus('Checking token validity...', 'info');
-
-            try {
-                // Get current config to check token validity
-                const configResponse = await fetch('/api/config');
-                const config = await configResponse.json();
-                console.log('Server config rustPlusTokenExpiry:', config.rustPlusTokenExpiry);
-                
-                // Check if we have a valid token from extension
-                let hasValidToken = false;
-                
-                // Check server's stored token expiry (NO extension data)
-                console.log('Checking token expiry:', config.rustPlusTokenExpiry);
-                if (config.rustPlusTokenExpiry && config.rustPlusTokenExpiry !== "") {
-                    console.log('Token expiry found, checking validity...');
-                    try {
-                        const expiryDate = new Date(config.rustPlusTokenExpiry);
-                        const now = new Date();
-                        const timeLeft = expiryDate - now;
-                        
-                        if (timeLeft > 0) {
-                            const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-                            hasValidToken = true;
-                            showStatus(`✅ Token is still valid for ${daysLeft} days, skipping token update`, 'success');
-                } else {
-                            hasValidToken = false;
-                            showStatus('⚠️ Token expired, updating token...', 'info');
-                }
-            } catch (error) {
-                        hasValidToken = false;
-                        showStatus('⚠️ Invalid token expiry format, updating token...', 'info');
-                    }
-                } else {
-                    console.log('No token expiry found, going to step 1');
-                    hasValidToken = false;
-                    showStatus('⚠️ No token expiry stored, updating token...', 'info');
-                }
-                
-                console.log('hasValidToken:', hasValidToken);
-                
-                if (!hasValidToken) {
-                    // Go to step 1 to update token
-                    updateRustPlusSteps({});
-                } else {
-                    showStatus('✅ Token is valid, starting FCM pairing...', 'success');
-                    // Skip to step 2 (FCM pairing)
-                    updateRustPlusSteps({
-                        rustPlusPlayerId: config.rustPlusPlayerId,
-                        rustPlusPlayerToken: config.rustPlusPlayerToken
-                    });
-                }
-                
-            } catch (error) {
-                showStatus('❌ Restart pairing failed: ' + error.message, 'error');
-            } finally {
-                // Re-enable button
-                restartButton.disabled = false;
-                restartButton.innerHTML = originalText;
-            }
-        }
 
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
