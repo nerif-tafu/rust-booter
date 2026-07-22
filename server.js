@@ -283,10 +283,14 @@ class RustPlusWebSocketClient {
       return;
     }
 
-    // Update the entity status in detected entities
-    if (config.detectedEntities && config.detectedEntities[data.entityId]) {
-      config.detectedEntities[data.entityId].lastValue = data.isActive;
-      config.detectedEntities[data.entityId].lastChanged = new Date().toISOString();
+    // Update the entity status in detected entities.
+    // hasOwnProperty rather than truthiness: entityId comes off the wire, and
+    // keys like "__proto__" are inherited-truthy, so a plain lookup would write
+    // straight onto Object.prototype.
+    if (config.detectedEntities && Object.prototype.hasOwnProperty.call(config.detectedEntities, data.entityId)) {
+      const entity = config.detectedEntities[data.entityId];
+      entity.lastValue = data.isActive;
+      entity.lastChanged = new Date().toISOString();
       saveConfig(config);
     }
 
@@ -846,10 +850,12 @@ app.put('/api/detected-entities/:id', (req, res) => {
     const entityId = req.params.id;
     const newName = req.body.name;
     
-    if (!config.detectedEntities || !config.detectedEntities[entityId]) {
+    // hasOwnProperty rather than truthiness: entityId is a request parameter, so
+    // "__proto__" would otherwise pass this guard and pollute Object.prototype.
+    if (!config.detectedEntities || !Object.prototype.hasOwnProperty.call(config.detectedEntities, entityId)) {
       return res.status(404).json({ success: false, error: 'Entity not found' });
     }
-    
+
     // Update the entity name
     config.detectedEntities[entityId].name = newName;
     

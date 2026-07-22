@@ -490,7 +490,7 @@
                     const selectedOption = serverSelect.options[serverSelect.selectedIndex];
                     if (selectedOption && selectedOption.value) {
                         const serverName = selectedOption.textContent;
-                        document.getElementById('serverDetails').innerHTML = `Selected: ${serverName}`;
+                        document.getElementById('serverDetails').textContent = `Selected: ${serverName}`;
                         document.getElementById('selectedServerInfo').style.display = 'block';
                     }
                 }
@@ -609,7 +609,7 @@
                     const selectedOption = serverSelect.options[serverSelect.selectedIndex];
                     const serverName = selectedOption.textContent;
                     
-                    document.getElementById('serverDetails').innerHTML = `Selected: ${serverName}`;
+                    document.getElementById('serverDetails').textContent = `Selected: ${serverName}`;
                     document.getElementById('selectedServerInfo').style.display = 'block';
                     
                     // Save the configuration with the selected server
