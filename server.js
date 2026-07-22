@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const wol = require('wake_on_lan');
 const axios = require('axios');
@@ -10,7 +11,33 @@ const WebSocket = require('ws');
 const app = express();
 const PORT = process.env.PORT || 8534;
 
+// This instance is internet-facing, so every route gets a baseline limit.
+//
+// TRUST_PROXY must be set when running behind a reverse proxy or CDN, otherwise
+// every client is counted as the proxy's IP and shares one bucket. Leave it
+// unset when exposed directly: trusting X-Forwarded-For with no proxy in front
+// lets a caller spoof their address and bypass the limits.
+if (process.env.TRUST_PROXY) {
+  const trustProxyValue = Number(process.env.TRUST_PROXY);
+  app.set('trust proxy', Number.isNaN(trustProxyValue) ? process.env.TRUST_PROXY : trustProxyValue);
+}
+
+const limiterDefaults = {
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please slow down.' },
+};
+
+// The smart-alarms tab polls entity status every 2s (~30 req/min), so this
+// leaves plenty of headroom for normal use.
+const generalLimiter = rateLimit({ ...limiterDefaults, windowMs: 60_000, max: 600 });
+
+// These have real-world side effects - wake-on-LAN packets, Discord webhooks,
+// and toggling physical smart switches - so they are kept deliberately tight.
+const actionLimiter = rateLimit({ ...limiterDefaults, windowMs: 15 * 60_000, max: 30 });
+
 // Middleware
+app.use(generalLimiter);
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -770,7 +797,7 @@ app.post('/api/config', (req, res) => {
 });
 
 // Test Discord webhook
-app.post('/api/test-discord', async (req, res) => {
+app.post('/api/test-discord', actionLimiter, async (req, res) => {
   try {
     const { webhookURL } = req.body;
     
@@ -800,7 +827,7 @@ app.post('/api/test-discord', async (req, res) => {
 });
 
 // Test WebSocket connection
-app.post('/api/test-rust-plus', async (req, res) => {
+app.post('/api/test-rust-plus', actionLimiter, async (req, res) => {
   try {
     const config = loadConfig();
     
@@ -1023,7 +1050,7 @@ app.get('/api/rust-plus/server-info/:serverId', (req, res) => {
 });
 
 // Toggle switch
-app.post('/api/rust-plus/toggle-switch', (req, res) => {
+app.post('/api/rust-plus/toggle-switch', actionLimiter, (req, res) => {
   try {
     const { serverId, entityId } = req.body;
     
@@ -1152,7 +1179,7 @@ app.delete('/api/smart-alarms/:id', (req, res) => {
 });
 
 // Test smart alarm action
-app.post('/api/test-action/:id', async (req, res) => {
+app.post('/api/test-action/:id', actionLimiter, async (req, res) => {
   try {
     const config = loadConfig();
     const actionId = req.params.id;
@@ -1175,7 +1202,7 @@ app.post('/api/test-action/:id', async (req, res) => {
 });
 
 // Main boot sequence endpoint
-app.post('/go', async (req, res) => {
+app.post('/go', actionLimiter, async (req, res) => {
   try {
     const config = loadConfig();
     
