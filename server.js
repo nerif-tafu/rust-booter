@@ -284,11 +284,19 @@ class RustPlusWebSocketClient {
     }
 
     // Update the entity status in detected entities.
-    // hasOwnProperty rather than truthiness: entityId comes off the wire, and
-    // keys like "__proto__" are inherited-truthy, so a plain lookup would write
-    // straight onto Object.prototype.
-    if (config.detectedEntities && Object.prototype.hasOwnProperty.call(config.detectedEntities, data.entityId)) {
-      const entity = config.detectedEntities[data.entityId];
+    // entityId comes off the wire, so reject the keys that would let this
+    // assignment reach Object.prototype. A plain truthiness check is not
+    // enough: detectedEntities['__proto__'] is inherited-truthy, so the write
+    // would land on the prototype and affect every object in the process.
+    const changedId = data.entityId;
+    if (
+      changedId !== '__proto__' &&
+      changedId !== 'constructor' &&
+      changedId !== 'prototype' &&
+      config.detectedEntities &&
+      Object.prototype.hasOwnProperty.call(config.detectedEntities, changedId)
+    ) {
+      const entity = config.detectedEntities[changedId];
       entity.lastValue = data.isActive;
       entity.lastChanged = new Date().toISOString();
       saveConfig(config);
@@ -850,8 +858,12 @@ app.put('/api/detected-entities/:id', (req, res) => {
     const entityId = req.params.id;
     const newName = req.body.name;
     
-    // hasOwnProperty rather than truthiness: entityId is a request parameter, so
-    // "__proto__" would otherwise pass this guard and pollute Object.prototype.
+    // entityId is a request parameter, so reject the keys that would let the
+    // assignment below reach Object.prototype before doing anything else.
+    if (entityId === '__proto__' || entityId === 'constructor' || entityId === 'prototype') {
+      return res.status(400).json({ success: false, error: 'Invalid entity id' });
+    }
+
     if (!config.detectedEntities || !Object.prototype.hasOwnProperty.call(config.detectedEntities, entityId)) {
       return res.status(404).json({ success: false, error: 'Entity not found' });
     }
