@@ -7,322 +7,112 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" href="/favicon.png">
     <style>
+        /* Flat Terminal theme - shared house style */
+        @import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+        :root {
+            --bg: #242827;
+            --surface: #2f2f2f;
+            --surface-raised: #3a3e3d;
+            --border: #4a4a4a;
+            --border-subtle: #3a3e3d;
+            --text: #ffffff;
+            --text-muted: #778899;
+            --accent: #ffffff;
+            --accent-text: #242827;
+            --accent-hover: #e5e5e5;
+            --success: #66bb6a;
+            --info: #64b5f6;
+            --warning: #ffd54f;
+            --error: #f87171;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            border-radius: 0;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Anonymous Pro', monospace;
+            font-size: 16px;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
         }
 
+        /* Centred content column, as on the other house sites */
         .container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            max-width: 1000px;
+            max-width: 900px;
             width: 100%;
+            margin: 0 auto;
+            padding: 24px 16px 48px;
         }
 
         h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            font-weight: 300;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 24px;
         }
 
-        .form-group {
-            margin-bottom: 25px;
+        h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
-        label {
-            display: block;
+        h4 {
+            font-size: 1rem;
+            font-weight: 700;
             margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
         }
 
-        input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
+        p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
         }
 
-        input[type="text"]:focus, input[type="number"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        button {
-            flex: 1;
-            padding: 15px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: #f8f9fa;
-            color: #6c757d;
-            border: 2px solid #e9ecef;
-        }
-
-        .btn-secondary:hover {
-            background: #e9ecef;
-            transform: translateY(-2px);
-        }
-
-        .btn-primary:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #218838;
-            transform: translateY(-2px);
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-        }
-
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: 500;
-            display: none;
-        }
-
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .config-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .config-section h3 {
-            color: #495057;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .config-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 1200px) {
-            .config-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .config-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .rust-step {
-            padding: 20px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background: #f8f9fa;
-        }
-
-        .rust-step h4 {
-            margin: 0 0 10px 0;
-            color: #495057;
-            font-size: 1.1em;
-        }
-
-        .rust-step p {
-            margin: 0 0 15px 0;
-            color: #6c757d;
-        }
-
-        .smart-alarm-card {
-            background: #fff;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .smart-alarm-card h4 {
-            margin: 0 0 15px 0;
-            color: #495057;
-            font-size: 1.1em;
-        }
-
-        .smart-alarm-card .form-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-
-        .smart-alarm-card .form-row label {
-            min-width: 120px;
-            margin-bottom: 0;
-        }
-
-        .smart-alarm-card .form-row input,
-        .smart-alarm-card .form-row select {
-            flex: 1;
-            padding: 8px 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .smart-alarm-card .checkbox-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .smart-alarm-card .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .smart-alarm-card .checkbox-item input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-        }
-
-        .smart-alarm-card .actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            align-items: center;
-        }
-
-        .smart-alarm-card .actions button {
-            padding: 8px 16px;
-            font-size: 14px;
-            flex: none;
-        }
-
-        /* Tab Styles */
+        /* Tabs: active is the inverted block, inactive underlines on hover */
         .tab-container {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .tab-buttons {
             display: flex;
-            border-bottom: 2px solid #e9ecef;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .tab-buttons::-webkit-scrollbar {
+            display: none;
         }
 
         .tab-button {
-            padding: 15px 25px;
-            background: none;
+            flex: none;
+            flex-shrink: 0;
+            padding: 10px 16px;
+            background: transparent;
             border: none;
-            border-bottom: 3px solid transparent;
-            font-size: 16px;
-            font-weight: 500;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 400;
             cursor: pointer;
-            transition: all 0.3s ease;
-            color: #6c757d;
         }
 
         .tab-button:hover {
-            color: #495057;
-            background: #f8f9fa;
+            text-decoration: underline;
         }
 
         .tab-button.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-            background: #f8f9fa;
+            background: var(--accent);
+            color: var(--accent-text);
+            font-weight: 700;
         }
 
         .tab-content {
@@ -332,18 +122,288 @@
         .tab-content.active {
             display: block;
         }
+
+        /* Panels */
+        .config-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px 24px;
+            margin-bottom: 16px;
+        }
+
+        /* Inset blocks for steps and per-item cards */
+        .rust-step,
+        .smart-alarm-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .rust-step p,
+        .smart-alarm-card p {
+            margin-bottom: 12px;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        input[type="checkbox"] {
+            width: auto;
+            accent-color: var(--accent);
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 400;
+            cursor: pointer;
+            text-transform: none;
+        }
+
+        button:hover {
+            border-color: var(--accent);
+        }
+
+        .btn-primary,
+        .btn-success {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--accent-text);
+        }
+
+        .btn-primary:hover,
+        .btn-success:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+            color: var(--accent-text);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+        }
+
+        .btn-danger {
+            background: transparent;
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .btn-danger:hover {
+            background: var(--error);
+            border-color: var(--error);
+            color: var(--accent-text);
+        }
+
+        button:disabled,
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--accent-text);
+        }
+
+        /* Status: dark panel with a coloured left edge, no icon */
+        .status {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left-width: 3px;
+            color: var(--text);
+            text-align: left;
+            display: none;
+        }
+
+        .status.success {
+            border-left-color: var(--success);
+        }
+
+        .status.error {
+            border-left-color: var(--error);
+        }
+
+        .status.info {
+            border-left-color: var(--info);
+        }
+
+        /* Rows */
+        .smart-alarm-card .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .smart-alarm-card .form-row label {
+            min-width: 120px;
+            margin-bottom: 0;
+        }
+
+        .smart-alarm-card .form-row input,
+        .smart-alarm-card .form-row select {
+            flex: 1 1 200px;
+        }
+
+        .smart-alarm-card .checkbox-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .smart-alarm-card .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .smart-alarm-card .checkbox-item label {
+            margin-bottom: 0;
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .smart-alarm-card .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .smart-alarm-card .actions button {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .loading { animation: none; }
+        }
+
+        /* Scrollbars */
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 Rust Booter</h1>
+        <h1>Rust Booter</h1>
         
         <!-- Tab Navigation -->
         <div class="tab-container">
             <div class="tab-buttons">
-                <button class="tab-button active" onclick="switchTab('settings')">⚙️ Settings</button>
-                <button class="tab-button" onclick="switchTab('smart-alarms')">🚨 Smart Alarms</button>
-                <button class="tab-button" onclick="switchTab('actions')">🎯 Actions</button>
+                <button class="tab-button active" onclick="switchTab('settings')">Settings</button>
+                <button class="tab-button" onclick="switchTab('smart-alarms')">Smart Alarms</button>
+                <button class="tab-button" onclick="switchTab('actions')">Actions</button>
             </div>
         </div>
         
@@ -351,7 +411,7 @@
         <div id="settings-tab" class="tab-content active">
             <div class="config-grid">
         <div class="config-section">
-                    <h3>🎮 Gaming Configuration</h3>
+                    <h3>Gaming Configuration</h3>
             
             <div class="form-group">
                 <label for="gamingPCIP">Gaming PC IP Address:</label>
@@ -375,19 +435,19 @@
             </div>
             
                 <div class="config-section">
-                    <h3>💬 Discord Notifications</h3>
+                    <h3>Discord Notifications</h3>
                     
                     <div id="discordSettings">
                     <div class="form-group">
                         <label for="discordWebhookURL">Discord Webhook URL:</label>
                         <input type="text" id="discordWebhookURL" placeholder="https://discord.com/api/webhooks/...">
-                        <small style="color: #666; font-size: 0.9em;">Get this from your Discord server settings > Integrations > Webhooks</small>
+                        <small style="color: #666; font-size: 0.9em;">Get this from your Discord server settings >Integrations >Webhooks</small>
                     </div>
                     </div>
                 </div>
                 
                 <div class="config-section">
-                    <h3>🎮 Rust+ Notifications</h3>
+                    <h3>Rust+ Notifications</h3>
                     
                     <div id="rustPlusSettings">
                         <!-- Server Selection -->
@@ -400,7 +460,7 @@
                                 </select>
                             </div>
                             <div class="button-group">
-                                <button type="button" class="btn-secondary" onclick="refreshServers()" id="refreshServersBtn">🔄 Refresh Servers</button>
+                                <button type="button" class="btn-secondary" onclick="refreshServers()" id="refreshServersBtn">Refresh Servers</button>
                             </div>
                             <div id="selectedServerInfo" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef; display: none;">
                                 <div id="serverDetails" style="color: #6c757d; font-style: italic;"></div>
@@ -418,7 +478,7 @@
         <!-- Smart Alarms Tab -->
         <div id="smart-alarms-tab" class="tab-content">
             <div class="config-section">
-                <h3>🚨 Smart Alarms</h3>
+                <h3>Smart Alarms</h3>
                 <p style="color: #6c757d; margin-bottom: 20px;">List of smart alarms that have been paired with your Rust server.</p>
                 
                 <div id="smartAlarmsList">
@@ -430,7 +490,7 @@
         <!-- Actions Tab -->
         <div id="actions-tab" class="tab-content">
             <div class="config-section">
-                <h3>🎯 Actions</h3>
+                <h3>Actions</h3>
                 <p style="color: #6c757d; margin-bottom: 20px;">Configure automatic actions when specific messages are received from Rust+ (team messages, entity changes, etc.). All Rust+ messages are logged to the server console.</p>
                 
                 
@@ -439,18 +499,18 @@
                 </div>
                 
                 <div class="button-group">
-                    <button type="button" class="btn-primary" onclick="addAction()">➕ Add Action</button>
+                    <button type="button" class="btn-primary" onclick="addAction()">Add Action</button>
                 </div>
             </div>
             
             <div class="config-section">
-                <h3>🛠️ Manual Actions</h3>
+                <h3>Manual Actions</h3>
                 <p style="color: #6c757d; margin-bottom: 20px;">Manual actions and system controls.</p>
                 
                 <div class="button-group">
-                    <button type="button" class="btn-primary" onclick="wakeUpPC()">🖥️ Wake Up PC</button>
-                    <button type="button" class="btn-secondary" onclick="testDiscord()">💬 Test Discord</button>
-                    <button type="button" class="btn-secondary" onclick="testRustPlus()">🎮 Test Rust+</button>
+                    <button type="button" class="btn-primary" onclick="wakeUpPC()">Wake Up PC</button>
+                    <button type="button" class="btn-secondary" onclick="testDiscord()">Test Discord</button>
+                    <button type="button" class="btn-secondary" onclick="testRustPlus()">Test Rust+</button>
                 </div>
             </div>
         </div>
@@ -563,7 +623,7 @@
                 }
             } catch (error) {
                 console.error('Failed to load servers:', error);
-                showStatus('❌ Failed to load servers: ' + error.message, 'error');
+                showStatus('Failed to load servers: ' + error.message, 'error');
             }
         }
 
@@ -576,9 +636,9 @@
             
             try {
                 await loadServers();
-                showStatus('✅ Servers refreshed', 'success');
+                showStatus('Servers refreshed', 'success');
             } catch (error) {
-                showStatus('❌ Failed to refresh servers: ' + error.message, 'error');
+                showStatus('Failed to refresh servers: ' + error.message, 'error');
             } finally {
                 refreshBtn.disabled = false;
                 refreshBtn.textContent = originalText;
@@ -618,12 +678,12 @@
                     // Reload smart alarms for the selected server
                     await loadSmartAlarms();
                     
-                    showStatus('✅ Server selected successfully', 'success');
+                    showStatus('Server selected successfully', 'success');
                 } else {
-                    showStatus('❌ Failed to select server: ' + result.error, 'error');
+                    showStatus('Failed to select server: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to select server: ' + error.message, 'error');
+                showStatus('Failed to select server: ' + error.message, 'error');
             }
         }
 
@@ -636,7 +696,7 @@
         async function loadSmartAlarms() {
             try {
                 // First try to get entities from the selected server
-                const config = await fetch('/api/config').then(r => r.json());
+                const config = await fetch('/api/config').then(r =>r.json());
                 if (config.selectedServerId) {
                     try {
                         const entitiesResponse = await fetch(`/api/rust-plus/servers/${config.selectedServerId}/entities`);
@@ -685,10 +745,10 @@
                 await loadServers();
                 // Then reload smart alarms
                 await loadSmartAlarms();
-                showStatus('✅ Entities refreshed', 'success');
+                showStatus('Entities refreshed', 'success');
             } catch (error) {
                 console.error('Failed to refresh detected entities:', error);
-                showStatus('❌ Failed to refresh entities: ' + error.message, 'error');
+                showStatus('Failed to refresh entities: ' + error.message, 'error');
             }
         }
 
@@ -745,7 +805,7 @@
                     </span>
                 </div>
                 <div class="actions">
-                    <button type="button" class="btn-secondary" onclick="deleteEntity('${entity.id}')">🗑️ Delete</button>
+                    <button type="button" class="btn-secondary" onclick="deleteEntity('${entity.id}')">Delete</button>
                 </div>
             `;
 
@@ -783,9 +843,9 @@
                 </div>
                 <div class="actions">
                     <button type="button" class="btn-secondary ${alarm.enabled ? 'btn-success' : 'btn-danger'}" onclick="toggleAlarmEnabled('${alarm.id}')">
-                        ${alarm.enabled ? '✅ Enabled' : '❌ Disabled'}
+                        ${alarm.enabled ? 'Enabled' : 'Disabled'}
                     </button>
-                    <button type="button" class="btn-secondary" onclick="deleteSmartAlarm('${alarm.id}')">🗑️ Delete</button>
+                    <button type="button" class="btn-secondary" onclick="deleteSmartAlarm('${alarm.id}')">Delete</button>
                 </div>
             `;
 
@@ -812,18 +872,18 @@
                 const result = await response.json();
                 if (result.success) {
                     await loadSmartAlarms();
-                    showStatus('✅ Smart alarm added successfully', 'success');
+                    showStatus('Smart alarm added successfully', 'success');
                 } else {
-                    showStatus('❌ Failed to add smart alarm: ' + result.error, 'error');
+                    showStatus('Failed to add smart alarm: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to add smart alarm: ' + error.message, 'error');
+                showStatus('Failed to add smart alarm: ' + error.message, 'error');
             }
         }
 
         async function updateAlarmField(alarmId, field, value) {
             try {
-                const alarm = smartAlarms.find(a => a.id === alarmId);
+                const alarm = smartAlarms.find(a =>a.id === alarmId);
                 if (!alarm) return;
 
                 const updateData = { [field]: value };
@@ -839,21 +899,21 @@
                 const result = await response.json();
                 if (result.success) {
                     // Update local array
-                    const alarmIndex = smartAlarms.findIndex(a => a.id === alarmId);
+                    const alarmIndex = smartAlarms.findIndex(a =>a.id === alarmId);
                     if (alarmIndex !== -1) {
                         smartAlarms[alarmIndex] = result.alarm;
                     }
                 } else {
-                    showStatus('❌ Failed to update smart alarm: ' + result.error, 'error');
+                    showStatus('Failed to update smart alarm: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to update smart alarm: ' + error.message, 'error');
+                showStatus('Failed to update smart alarm: ' + error.message, 'error');
             }
         }
 
         async function toggleAlarmEnabled(alarmId) {
             try {
-                const alarm = smartAlarms.find(a => a.id === alarmId);
+                const alarm = smartAlarms.find(a =>a.id === alarmId);
                 if (!alarm) return;
 
                 const newEnabledState = !alarm.enabled;
@@ -869,18 +929,18 @@
                 const result = await response.json();
                 if (result.success) {
                     // Update local array
-                    const alarmIndex = smartAlarms.findIndex(a => a.id === alarmId);
+                    const alarmIndex = smartAlarms.findIndex(a =>a.id === alarmId);
                     if (alarmIndex !== -1) {
                         smartAlarms[alarmIndex] = result.alarm;
                     }
                     // Re-render the specific alarm card
                     renderSmartAlarms();
-                    showStatus(`✅ Smart alarm ${newEnabledState ? 'enabled' : 'disabled'} successfully`, 'success');
+                    showStatus(` Smart alarm ${newEnabledState ? 'enabled' : 'disabled'} successfully`, 'success');
                 } else {
-                    showStatus('❌ Failed to toggle smart alarm: ' + result.error, 'error');
+                    showStatus('Failed to toggle smart alarm: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to toggle smart alarm: ' + error.message, 'error');
+                showStatus('Failed to toggle smart alarm: ' + error.message, 'error');
             }
         }
 
@@ -897,12 +957,12 @@
                 const result = await response.json();
                 if (result.success) {
                     await loadSmartAlarms();
-                    showStatus('✅ Smart alarm deleted successfully', 'success');
+                    showStatus('Smart alarm deleted successfully', 'success');
                 } else {
-                    showStatus('❌ Failed to delete smart alarm: ' + result.error, 'error');
+                    showStatus('Failed to delete smart alarm: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to delete smart alarm: ' + error.message, 'error');
+                showStatus('Failed to delete smart alarm: ' + error.message, 'error');
             }
         }
 
@@ -918,9 +978,9 @@
                 // Update the display
                 renderSmartAlarms();
                 
-                showStatus('✅ Entity removed from list', 'success');
+                showStatus('Entity removed from list', 'success');
             } catch (error) {
-                showStatus('❌ Failed to delete entity: ' + error.message, 'error');
+                showStatus('Failed to delete entity: ' + error.message, 'error');
             }
         }
 
@@ -947,13 +1007,13 @@
                     // Re-render actions to update smart alarm dropdowns
                     renderActions();
                     
-                    showStatus('✅ Entity name updated', 'success');
+                    showStatus('Entity name updated', 'success');
                 } else {
-                    showStatus('❌ Failed to update entity name: ' + result.error, 'error');
+                    showStatus('Failed to update entity name: ' + result.error, 'error');
                 }
             } catch (error) {
                 console.error('Failed to update entity name:', error);
-                showStatus('❌ Failed to update entity name: ' + error.message, 'error');
+                showStatus('Failed to update entity name: ' + error.message, 'error');
             }
         }
 
@@ -1011,12 +1071,12 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showStatus('✅ PC wake sequence completed successfully!', 'success');
+                    showStatus('PC wake sequence completed successfully!', 'success');
                 } else {
-                    showStatus('❌ PC wake sequence failed: ' + result.error, 'error');
+                    showStatus('PC wake sequence failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ PC wake sequence failed: ' + error.message, 'error');
+                showStatus('PC wake sequence failed: ' + error.message, 'error');
             }
         }
 
@@ -1043,12 +1103,12 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showStatus('✅ Discord test notification sent successfully!', 'success');
+                    showStatus('Discord test notification sent successfully!', 'success');
                 } else {
-                    showStatus('❌ Discord test failed: ' + result.error, 'error');
+                    showStatus('Discord test failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Discord test failed: ' + error.message, 'error');
+                showStatus('Discord test failed: ' + error.message, 'error');
             }
         }
 
@@ -1075,13 +1135,13 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showStatus('✅ Action created successfully', 'success');
+                    showStatus('Action created successfully', 'success');
                     await loadActions();
                 } else {
-                    showStatus('❌ Failed to create action: ' + result.error, 'error');
+                    showStatus('Failed to create action: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to create action: ' + error.message, 'error');
+                showStatus('Failed to create action: ' + error.message, 'error');
             }
         }
 
@@ -1174,14 +1234,14 @@
                     <label>Discord Message:</label>
                     <input type="text" value="${action.discordMessage}" onchange="updateActionField('${action.id}', 'discordMessage', this.value)" placeholder="Custom Discord message">
                     <div style="font-size: 12px; color: #6c757d; margin-top: 5px; line-height: 1.4;">
-                        💡 <strong>Tip:</strong> To tag users use <code>&lt;@USER_ID&gt;</code>, to tag roles use <code>&lt;@&ROLE_ID&gt;</code><br>
+                         <strong>Tip:</strong>To tag users use <code>&lt;@USER_ID&gt;</code>, to tag roles use <code>&lt;@&ROLE_ID&gt;</code><br>
                     </div>
                 </div>
                 <div class="actions">
-                    <button type="button" class="btn-secondary" onclick="testAction('${action.id}')">🧪 Test</button>
-                    <button type="button" class="btn-secondary" onclick="deleteAction('${action.id}')">🗑️ Delete</button>
+                    <button type="button" class="btn-secondary" onclick="testAction('${action.id}')">Test</button>
+                    <button type="button" class="btn-secondary" onclick="deleteAction('${action.id}')">Delete</button>
                     <button type="button" class="btn-secondary ${action.enabled ? 'btn-success' : 'btn-danger'}" onclick="toggleActionEnabled('${action.id}')">
-                        ${action.enabled ? '✅ Enabled' : '❌ Disabled'}
+                        ${action.enabled ? 'Enabled' : 'Disabled'}
                     </button>
                 </div>
             `;
@@ -1203,23 +1263,23 @@
                 
                 // Debug logging for triggerOnActivation
                 if (field === 'triggerOnActivation') {
-                    console.log(`🔍 Frontend Debug: Setting triggerOnActivation to ${value} for action ${actionId}`);
+                    console.log(` Frontend Debug: Setting triggerOnActivation to ${value} for action ${actionId}`);
                 }
 
                 const result = await response.json();
                 if (result.success) {
-                    showStatus('✅ Action updated', 'success');
+                    showStatus('Action updated', 'success');
                 } else {
-                    showStatus('❌ Failed to update action: ' + result.error, 'error');
+                    showStatus('Failed to update action: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to update action: ' + error.message, 'error');
+                showStatus('Failed to update action: ' + error.message, 'error');
             }
         }
 
         async function toggleActionEnabled(actionId) {
             try {
-                const action = actions.find(a => a.id === actionId);
+                const action = actions.find(a =>a.id === actionId);
                 if (!action) return;
 
                 const response = await fetch(`/api/smart-alarms/${actionId}`, {
@@ -1234,13 +1294,13 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    showStatus('✅ Action updated', 'success');
+                    showStatus('Action updated', 'success');
                     await loadActions();
                 } else {
-                    showStatus('❌ Failed to update action: ' + result.error, 'error');
+                    showStatus('Failed to update action: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to update action: ' + error.message, 'error');
+                showStatus('Failed to update action: ' + error.message, 'error');
             }
         }
 
@@ -1256,19 +1316,19 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    showStatus('✅ Action deleted successfully', 'success');
+                    showStatus('Action deleted successfully', 'success');
                     await loadActions();
                 } else {
-                    showStatus('❌ Failed to delete action: ' + result.error, 'error');
+                    showStatus('Failed to delete action: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Failed to delete action: ' + error.message, 'error');
+                showStatus('Failed to delete action: ' + error.message, 'error');
             }
         }
 
         async function testAction(actionId) {
             try {
-                showStatus('🧪 Testing action...', 'info');
+                showStatus('Testing action...', 'info');
                 
                 const response = await fetch(`/api/test-action/${actionId}`, {
                     method: 'POST'
@@ -1276,12 +1336,12 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    showStatus('✅ Action test completed successfully!', 'success');
+                    showStatus('Action test completed successfully!', 'success');
                 } else {
-                    showStatus('❌ Action test failed: ' + result.error, 'error');
+                    showStatus('Action test failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showStatus('❌ Action test failed: ' + error.message, 'error');
+                showStatus('Action test failed: ' + error.message, 'error');
             }
         }
 
