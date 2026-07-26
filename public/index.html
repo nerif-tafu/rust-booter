@@ -6,6 +6,7 @@
     <title>Rust Booter</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" href="/favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet">
     <style>
         /* Flat Terminal theme - shared house style */
         @import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap');
@@ -74,16 +75,25 @@
         }
 
         /* Tabs: active is the inverted block, inactive underlines on hover */
-        .tab-container {
-            margin-bottom: 16px;
+        /* Full-width sticky top bar carrying the tabs, matching the provider
+           and the shop helper. */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            height: 64px;
+            padding: 0 8px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
         }
 
         .tab-buttons {
             display: flex;
+            align-items: center;
             gap: 8px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0;
+            min-width: 0;
             overflow-x: auto;
             scrollbar-width: none;
         }
@@ -92,16 +102,22 @@
             display: none;
         }
 
+        /* Tabs are 48px blocks centred in the 64px bar, so the active white
+           block has dark space above and below it. */
         .tab-button {
-            flex: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             flex-shrink: 0;
-            padding: 10px 16px;
+            height: 48px;
+            padding: 0 16px;
             background: transparent;
             border: none;
             color: var(--text);
             font-family: inherit;
             font-size: 0.9rem;
             font-weight: 400;
+            white-space: nowrap;
             cursor: pointer;
         }
 
@@ -113,6 +129,14 @@
             background: var(--accent);
             color: var(--accent-text);
             font-weight: 700;
+        }
+
+        .tab-button.active:hover {
+            text-decoration: none;
+        }
+
+        .tab-button .mdi {
+            font-size: 1rem;
         }
 
         .tab-content {
@@ -395,18 +419,15 @@
     </style>
 </head>
 <body>
+    <header class="topbar">
+        <nav class="tab-buttons">
+            <button class="tab-button active" onclick="switchTab('settings')"><i class="mdi mdi-cog"></i><span>Settings</span></button>
+            <button class="tab-button" onclick="switchTab('smart-alarms')"><i class="mdi mdi-alarm-light"></i><span>Smart Alarms</span></button>
+            <button class="tab-button" onclick="switchTab('actions')"><i class="mdi mdi-flash"></i><span>Actions</span></button>
+        </nav>
+    </header>
+
     <div class="container">
-        <h1>Rust Booter</h1>
-        
-        <!-- Tab Navigation -->
-        <div class="tab-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="switchTab('settings')">Settings</button>
-                <button class="tab-button" onclick="switchTab('smart-alarms')">Smart Alarms</button>
-                <button class="tab-button" onclick="switchTab('actions')">Actions</button>
-            </div>
-        </div>
-        
         <!-- Settings Tab -->
         <div id="settings-tab" class="tab-content active">
             <div class="config-grid">
@@ -1031,10 +1052,13 @@
             
             // Show selected tab content
             document.getElementById(tabName + '-tab').classList.add('active');
-            
-            // Add active class to clicked button
-            event.target.classList.add('active');
-            
+
+            // Add active class to the button for this tab. Derived from tabName
+            // rather than event.target, so a click landing on the button's icon
+            // or label still activates the button itself.
+            const activeButton = document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+            if (activeButton) activeButton.classList.add('active');
+
             // Update URL hash
             window.location.hash = tabName;
         }
