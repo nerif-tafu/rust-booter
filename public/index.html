@@ -63,6 +63,53 @@
             margin-bottom: 4px;
         }
 
+        /* Section header: title + one-line description left, actions right */
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .section-head > div:first-child {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .section-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            max-width: 60ch;
+            margin: 0;
+        }
+
+        .section-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .field-hint {
+            display: block;
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
         h4 {
             font-size: 1rem;
             font-weight: 700;
@@ -431,9 +478,14 @@
         <!-- Settings Tab -->
         <div id="settings-tab" class="tab-content active">
             <div class="config-grid">
-        <div class="config-section">
-                    <h3>Gaming Configuration</h3>
-            
+            <div class="config-section">
+                <div class="section-head">
+                    <div>
+                        <h3 class="section-title">Gaming Configuration</h3>
+                        <p class="section-description">The PC to wake and the Rust server to launch into.</p>
+                    </div>
+                </div>
+
             <div class="form-group">
                 <label for="gamingPCIP">Gaming PC IP Address:</label>
                 <input type="text" id="gamingPCIP" placeholder="192.168.1.100" required>
@@ -456,35 +508,45 @@
             </div>
             
                 <div class="config-section">
-                    <h3>Discord Notifications</h3>
-                    
+                    <div class="section-head">
+                        <div>
+                            <h3 class="section-title">Discord Notifications</h3>
+                            <p class="section-description">Where boot progress and alerts are posted.</p>
+                        </div>
+                    </div>
+
                     <div id="discordSettings">
                     <div class="form-group">
                         <label for="discordWebhookURL">Discord Webhook URL:</label>
                         <input type="text" id="discordWebhookURL" placeholder="https://discord.com/api/webhooks/...">
-                        <small style="color: #666; font-size: 0.9em;">Get this from your Discord server settings >Integrations >Webhooks</small>
+                        <small class="field-hint">Find this in your Discord server settings, under Integrations &rsaquo; Webhooks.</small>
                     </div>
                     </div>
                 </div>
                 
                 <div class="config-section">
-                    <h3>Rust+ Notifications</h3>
-                    
+                    <div class="section-head">
+                        <div>
+                            <h3 class="section-title">Rust+ Notifications</h3>
+                            <p class="section-description">The paired server used for in-game notifications.</p>
+                        </div>
+                    </div>
+
                     <div id="rustPlusSettings">
                         <!-- Server Selection -->
                         <div class="rust-step">
                             <h4>Select Server</h4>
                             <div class="form-group">
                                 <label for="serverSelect">Available Servers:</label>
-                                <select id="serverSelect" onchange="selectServer(this.value)" style="width: 100%; padding: 12px 15px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 16px;">
+                                <select id="serverSelect" onchange="selectServer(this.value)" style="width: 100%; padding: 12px 15px; border: 1px solid var(--border);  font-size: 16px;">
                                     <option value="">-- Select a server --</option>
                                 </select>
                             </div>
                             <div class="button-group">
                                 <button type="button" class="btn-secondary" onclick="refreshServers()" id="refreshServersBtn">Refresh Servers</button>
                             </div>
-                            <div id="selectedServerInfo" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef; display: none;">
-                                <div id="serverDetails" style="color: #6c757d; font-style: italic;"></div>
+                            <div id="selectedServerInfo" style="margin-top: 10px; padding: 10px; background: var(--bg);  border: 1px solid var(--border); display: none;">
+                                <div id="serverDetails" style="color: var(--text-muted); font-style: italic;"></div>
                             </div>
                         </div>
                     </div>
@@ -499,9 +561,13 @@
         <!-- Smart Alarms Tab -->
         <div id="smart-alarms-tab" class="tab-content">
             <div class="config-section">
-                <h3>Smart Alarms</h3>
-                <p style="color: #6c757d; margin-bottom: 20px;">List of smart alarms that have been paired with your Rust server.</p>
-                
+                <div class="section-head">
+                    <div>
+                        <h3 class="section-title">Smart Alarms</h3>
+                        <p class="section-description">Smart alarms paired with your Rust server.</p>
+                    </div>
+                </div>
+
                 <div id="smartAlarmsList">
                     <!-- Smart alarms will be dynamically added here -->
                 </div>
@@ -511,23 +577,29 @@
         <!-- Actions Tab -->
         <div id="actions-tab" class="tab-content">
             <div class="config-section">
-                <h3>Actions</h3>
-                <p style="color: #6c757d; margin-bottom: 20px;">Configure automatic actions when specific messages are received from Rust+ (team messages, entity changes, etc.). All Rust+ messages are logged to the server console.</p>
-                
-                
+                <div class="section-head">
+                    <div>
+                        <h3 class="section-title">Actions</h3>
+                        <p class="section-description">Run an action automatically when a matching Rust+ message arrives. All Rust+ messages are logged to the server console.</p>
+                    </div>
+                    <div class="section-actions">
+                        <button type="button" class="btn-primary btn-sm" onclick="addAction()">Add Action</button>
+                    </div>
+                </div>
+
                 <div id="actionsList">
                     <!-- Actions will be dynamically added here -->
                 </div>
-                
-                <div class="button-group">
-                    <button type="button" class="btn-primary" onclick="addAction()">Add Action</button>
-                </div>
             </div>
-            
+
             <div class="config-section">
-                <h3>Manual Actions</h3>
-                <p style="color: #6c757d; margin-bottom: 20px;">Manual actions and system controls.</p>
-                
+                <div class="section-head">
+                    <div>
+                        <h3 class="section-title">Manual Actions</h3>
+                        <p class="section-description">Trigger a boot or test your notification channels.</p>
+                    </div>
+                </div>
+
                 <div class="button-group">
                     <button type="button" class="btn-primary" onclick="wakeUpPC()">Wake Up PC</button>
                     <button type="button" class="btn-secondary" onclick="testDiscord()">Test Discord</button>
@@ -781,7 +853,7 @@
             const entities = Object.values(detectedEntities);
             
             if (entities.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; font-style: italic; text-align: center; padding: 20px;">No smart alarms paired yet. Pair with smart alarms in your Rust server to see them here.</p>';
+                container.innerHTML = '<p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No smart alarms paired yet. Pair with smart alarms in your Rust server to see them here.</p>';
                 return;
             }
 
@@ -803,25 +875,25 @@
                 </div>
                 <div class="form-row">
                     <label>Entity ID:</label>
-                    <span style="font-family: monospace; background: #f8f9fa; padding: 5px 10px; border-radius: 4px;">${entity.id || 'Unknown'}</span>
+                    <span style="font-family: monospace; background: var(--bg); padding: 5px 10px; ">${entity.id || 'Unknown'}</span>
                 </div>
                 <div class="form-row">
                     <label>Type:</label>
-                    <span style="color: #6c757d;">${entity.type || 'Unknown'}</span>
+                    <span style="color: var(--text-muted);">${entity.type || 'Unknown'}</span>
                 </div>
                 <div class="form-row">
                     <label>Status:</label>
-                    <span style="color: ${entity.lastValue ? '#28a745' : '#6c757d'}; font-weight: 500;">
+                    <span style="color: ${entity.lastValue ? 'var(--success)' : 'var(--text-muted)'}; font-weight: 500;">
                         ${entity.lastValue ? 'Active' : 'Inactive'}
                     </span>
                 </div>
                 <div class="form-row">
                     <label>Last Changed:</label>
-                    <span style="color: #6c757d;">${entity.lastChanged ? new Date(entity.lastChanged).toLocaleString() : 'Never'}</span>
+                    <span style="color: var(--text-muted);">${entity.lastChanged ? new Date(entity.lastChanged).toLocaleString() : 'Never'}</span>
                 </div>
                 <div class="form-row">
                     <label>Paired:</label>
-                    <span style="color: ${entity.paired ? '#28a745' : '#6c757d'}; font-weight: 500;">
+                    <span style="color: ${entity.paired ? 'var(--success)' : 'var(--text-muted)'}; font-weight: 500;">
                         ${entity.paired ? 'Yes' : 'No'}
                     </span>
                 </div>
@@ -1199,7 +1271,7 @@
             container.innerHTML = '';
 
             if (actions.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; font-style: italic; text-align: center; padding: 20px;">No actions configured yet. Click "Add Action" to create one.</p>';
+                container.innerHTML = '<p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No actions configured yet. Click "Add Action" to create one.</p>';
                 return;
             }
 
@@ -1232,13 +1304,13 @@
                 </div>
                 <div class="form-row">
                     <label>Smart Alarm:</label>
-                    <select onchange="updateActionField('${action.id}', 'entityId', this.value)" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <select onchange="updateActionField('${action.id}', 'entityId', this.value)" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid var(--border); ">
                         ${smartAlarmOptions}
                     </select>
                 </div>
                 <div class="form-row">
                     <label>Trigger On:</label>
-                    <select onchange="updateActionField('${action.id}', 'triggerOnActivation', this.value === 'activation')" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <select onchange="updateActionField('${action.id}', 'triggerOnActivation', this.value === 'activation')" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid var(--border); ">
                         <option value="activation" ${action.triggerOnActivation === true ? 'selected' : ''}>Activation (when alarm turns ON)</option>
                         <option value="deactivation" ${action.triggerOnActivation === false ? 'selected' : ''}>Deactivation (when alarm turns OFF)</option>
                     </select>
@@ -1257,7 +1329,7 @@
                 <div class="form-row">
                     <label>Discord Message:</label>
                     <input type="text" value="${action.discordMessage}" onchange="updateActionField('${action.id}', 'discordMessage', this.value)" placeholder="Custom Discord message">
-                    <div style="font-size: 12px; color: #6c757d; margin-top: 5px; line-height: 1.4;">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px; line-height: 1.4;">
                          <strong>Tip:</strong>To tag users use <code>&lt;@USER_ID&gt;</code>, to tag roles use <code>&lt;@&ROLE_ID&gt;</code><br>
                     </div>
                 </div>
