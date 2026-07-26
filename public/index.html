@@ -628,15 +628,12 @@
                             <h4>Select Server</h4>
                             <div class="form-group">
                                 <label for="serverSelect">Available Servers:</label>
-                                <select id="serverSelect" onchange="selectServer(this.value)" style="width: 100%; padding: 12px 15px; border: 1px solid var(--border);  font-size: 16px;">
+                                <select id="serverSelect" onchange="selectServer(this.value)">
                                     <option value="">-- Select a server --</option>
                                 </select>
                             </div>
                             <div class="button-group">
                                 <button type="button" class="btn-secondary" onclick="refreshServers()" id="refreshServersBtn">Refresh Servers</button>
-                            </div>
-                            <div id="selectedServerInfo" style="margin-top: 10px; padding: 10px; background: var(--bg);  border: 1px solid var(--border); display: none;">
-                                <div id="serverDetails" style="color: var(--text-muted); font-style: italic;"></div>
                             </div>
                         </div>
                     </div>
@@ -736,14 +733,6 @@
                 await loadServers();
                 if (config.selectedServerId) {
                     document.getElementById('serverSelect').value = config.selectedServerId;
-                    // Update the selected server info display
-                    const serverSelect = document.getElementById('serverSelect');
-                    const selectedOption = serverSelect.options[serverSelect.selectedIndex];
-                    if (selectedOption && selectedOption.value) {
-                        const serverName = selectedOption.textContent;
-                        document.getElementById('serverDetails').textContent = `Selected: ${serverName}`;
-                        document.getElementById('selectedServerInfo').style.display = 'block';
-                    }
                 }
                 
                 // Load smart alarms
@@ -838,7 +827,6 @@
 
         async function selectServer(serverId) {
             if (!serverId) {
-                document.getElementById('selectedServerInfo').style.display = 'none';
                 // Save config to clear the selected server
                 await saveConfig();
                 return;
@@ -854,15 +842,8 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
-                    const serverSelect = document.getElementById('serverSelect');
-                    const selectedOption = serverSelect.options[serverSelect.selectedIndex];
-                    const serverName = selectedOption.textContent;
-                    
-                    document.getElementById('serverDetails').textContent = `Selected: ${serverName}`;
-                    document.getElementById('selectedServerInfo').style.display = 'block';
-                    
                     // Save the configuration with the selected server
                     await saveConfig();
                     
@@ -969,11 +950,11 @@
             card.innerHTML = `
                 <div class="form-row">
                     <label>Name:</label>
-                    <input type="text" value="${entity.name || 'Unnamed Device'}" onchange="updateEntityName('${entity.id}', this.value)" style="flex: 1; margin-left: 10px;">
+                    <input type="text" value="${entity.name || 'Unnamed Device'}" onchange="updateEntityName('${entity.id}', this.value)">
                 </div>
                 <div class="form-row">
                     <label>Entity ID:</label>
-                    <span style="font-family: monospace; background: var(--bg); padding: 5px 10px; ">${entity.id || 'Unknown'}</span>
+                    <span style="background: var(--bg); padding: 4px 8px;">${entity.id || 'Unknown'}</span>
                 </div>
                 <div class="form-row">
                     <label>Type:</label>
@@ -1425,17 +1406,16 @@
                 </div>
                 <div class="form-row">
                     <label>Smart Alarm:</label>
-                    <select onchange="updateActionField('${action.id}', 'entityId', this.value)" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid var(--border); ">
+                    <select onchange="updateActionField('${action.id}', 'entityId', this.value)">
                         ${smartAlarmOptions}
                     </select>
                 </div>
                 <div class="form-row">
                     <label>Trigger On:</label>
-                    <select onchange="updateActionField('${action.id}', 'triggerOnActivation', this.value === 'activation')" style="flex: 1; margin-left: 10px; padding: 8px; border: 1px solid var(--border); ">
+                    <select onchange="updateActionField('${action.id}', 'triggerOnActivation', this.value === 'activation')">
                         <option value="activation" ${action.triggerOnActivation === true ? 'selected' : ''}>Activation (when alarm turns ON)</option>
                         <option value="deactivation" ${action.triggerOnActivation === false ? 'selected' : ''}>Deactivation (when alarm turns OFF)</option>
                     </select>
-                    <!-- Debug: ${JSON.stringify({triggerOnActivation: action.triggerOnActivation, type: typeof action.triggerOnActivation})} -->
                 </div>
                 <div class="checkbox-row">
                     <div class="checkbox-item">
@@ -1450,8 +1430,8 @@
                 <div class="form-row">
                     <label>Discord Message:</label>
                     <input type="text" value="${action.discordMessage}" onchange="updateActionField('${action.id}', 'discordMessage', this.value)" placeholder="Custom Discord message">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px; line-height: 1.4;">
-                         <strong>Tip:</strong>To tag users use <code>&lt;@USER_ID&gt;</code>, to tag roles use <code>&lt;@&ROLE_ID&gt;</code><br>
+                    <div style="flex-basis: 100%; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+                        <strong>Tip:</strong> To tag users use <code>&lt;@USER_ID&gt;</code>, to tag roles use <code>&lt;@&ROLE_ID&gt;</code>
                     </div>
                 </div>
                 <div class="actions">
@@ -1477,11 +1457,6 @@
                         [field]: value
                     })
                 });
-                
-                // Debug logging for triggerOnActivation
-                if (field === 'triggerOnActivation') {
-                    console.log(` Frontend Debug: Setting triggerOnActivation to ${value} for action ${actionId}`);
-                }
 
                 const result = await response.json();
                 if (result.success) {
