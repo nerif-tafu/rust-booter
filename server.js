@@ -42,8 +42,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configuration file path
-const CONFIG_FILE = 'config.json';
+// Configuration file path. DATA_DIR points at a mounted volume in
+// production so the config survives the container being recreated on an
+// image update; without it the file lands in the image layer and every
+// deploy resets the user's settings. Defaults to the app directory for
+// local development.
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 
 // Global connection state
 let isConnecting = false;
