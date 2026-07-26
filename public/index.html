@@ -48,13 +48,61 @@
             max-width: 900px;
             width: 100%;
             margin: 0 auto;
-            padding: 24px 16px 48px;
+            /* Extra bottom padding so the sticky status bar never covers content */
+            padding: 24px 16px 96px;
         }
 
-        h1 {
+        /* Empty state: dark panel with a coloured edge, cause then remedy */
+        .alert {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-left-width: 3px;
+            padding: 16px;
+        }
+
+        .alert-info { border-left-color: var(--info); }
+
+        .alert h4 {
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .alert p {
+            margin: 0;
+        }
+
+        /* Page header: title + one-line description left, page actions right */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .page-header > div:first-child {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .page-title {
             font-size: 1.3rem;
             font-weight: 700;
-            margin-bottom: 24px;
+            margin-bottom: 4px;
+        }
+
+        .page-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .page-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         h3 {
@@ -202,11 +250,10 @@
             margin-bottom: 16px;
         }
 
+        /* Sections stack full width, as on the other house sites — side-by-side
+           columns cramped the forms and read inconsistently. */
         .config-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px 24px;
-            margin-bottom: 16px;
+            display: block;
         }
 
         /* Inset blocks for steps and per-item cards */
@@ -337,15 +384,48 @@
         }
 
         /* Status: dark panel with a coloured left edge, no icon */
+        /* Action feedback. Sticky at the bottom of the viewport so it is seen
+           regardless of scroll position, and it persists until dismissed or
+           replaced rather than vanishing on a timer. */
         .status {
-            margin-top: 16px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            display: none;
+            align-items: flex-start;
+            gap: 12px;
             padding: 16px;
             background: var(--surface);
-            border: 1px solid var(--border);
-            border-left-width: 3px;
+            border-top: 1px solid var(--border);
+            border-left: 3px solid var(--border);
             color: var(--text);
             text-align: left;
-            display: none;
+        }
+
+        .status.visible {
+            display: flex;
+        }
+
+        .status-message {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .status-dismiss {
+            flex-shrink: 0;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            line-height: 1;
+            padding: 0 4px;
+            cursor: pointer;
+        }
+
+        .status-dismiss:hover {
+            color: var(--text);
         }
 
         .status.success {
@@ -477,6 +557,16 @@
     <div class="container">
         <!-- Settings Tab -->
         <div id="settings-tab" class="tab-content active">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Settings</h1>
+                    <p class="page-description">Machine, server and notification configuration for the booter.</p>
+                </div>
+                <div class="page-actions">
+                    <button type="button" class="btn-primary" onclick="saveConfig()">Save config</button>
+                </div>
+            </header>
+
             <div class="config-grid">
             <div class="config-section">
                 <div class="section-head">
@@ -553,21 +643,18 @@
                 </div>
             </div>
             
-            <div class="button-group">
-                <button type="button" class="btn-secondary" onclick="saveConfig()">Save Config</button>
-            </div>
         </div>
         
         <!-- Smart Alarms Tab -->
         <div id="smart-alarms-tab" class="tab-content">
-            <div class="config-section">
-                <div class="section-head">
-                    <div>
-                        <h3 class="section-title">Smart Alarms</h3>
-                        <p class="section-description">Smart alarms paired with your Rust server.</p>
-                    </div>
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Smart Alarms</h1>
+                    <p class="page-description">Smart alarms paired with your Rust server, and what each one reports.</p>
                 </div>
+            </header>
 
+            <div class="config-section">
                 <div id="smartAlarmsList">
                     <!-- Smart alarms will be dynamically added here -->
                 </div>
@@ -576,11 +663,18 @@
         
         <!-- Actions Tab -->
         <div id="actions-tab" class="tab-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Actions</h1>
+                    <p class="page-description">Automatic responses to Rust+ events, plus manual controls.</p>
+                </div>
+            </header>
+
             <div class="config-section">
                 <div class="section-head">
                     <div>
-                        <h3 class="section-title">Actions</h3>
-                        <p class="section-description">Run an action automatically when a matching Rust+ message arrives. All Rust+ messages are logged to the server console.</p>
+                        <h3 class="section-title">Automatic Actions</h3>
+                        <p class="section-description">Run an action when a matching Rust+ message arrives. All Rust+ messages are logged to the server console.</p>
                     </div>
                     <div class="section-actions">
                         <button type="button" class="btn-primary btn-sm" onclick="addAction()">Add Action</button>
@@ -608,7 +702,11 @@
             </div>
         </div>
         
-        <div id="status" class="status"></div>
+    </div>
+
+    <div id="status" class="status" role="status">
+        <span class="status-message" id="statusMessage"></span>
+        <button type="button" class="status-dismiss" onclick="hideStatus()" title="Dismiss" aria-label="Dismiss">&times;</button>
     </div>
 
     <script type="module">
@@ -853,7 +951,7 @@
             const entities = Object.values(detectedEntities);
             
             if (entities.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No smart alarms paired yet. Pair with smart alarms in your Rust server to see them here.</p>';
+                container.innerHTML = '<div class="alert alert-info"><h4>No smart alarms paired</h4><p>No smart alarms are paired with your Rust server yet.</p><p>Pair one from the Rust+ mobile app and it will appear here.</p></div>';
                 return;
             }
 
@@ -1208,6 +1306,29 @@
             }
         }
 
+        // The Test Rust+ button referenced this, but it was never implemented,
+        // so the button silently threw. Uses the saved server config server-side.
+        async function testRustPlus() {
+            try {
+                const response = await fetch('/api/test-rust-plus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatus('Rust+ test notification sent successfully!', 'success');
+                } else {
+                    showStatus('Rust+ test failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('Rust+ test failed: ' + error.message, 'error');
+            }
+        }
+
 
         // Actions Functions
         async function addAction() {
@@ -1271,7 +1392,7 @@
             container.innerHTML = '';
 
             if (actions.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No actions configured yet. Click "Add Action" to create one.</p>';
+                container.innerHTML = '<div class="alert alert-info"><h4>No actions configured</h4><p>Nothing runs automatically when a Rust+ event arrives.</p><p>Use Add Action above to create your first one.</p></div>';
                 return;
             }
 
@@ -1496,6 +1617,7 @@
         window.testAction = testAction;
         window.wakeUpPC = wakeUpPC;
         window.testDiscord = testDiscord;
+        window.testRustPlus = testRustPlus;
         window.loadServers = loadServers;
         window.refreshServers = refreshServers;
         window.selectServer = selectServer;
@@ -1513,17 +1635,16 @@
 
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-            
-            // Auto-hide success messages after 5 seconds
-            if (type === 'success') {
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 5000);
-            }
+            document.getElementById('statusMessage').textContent = message;
+            // Persist until dismissed or replaced — a message that disappears on
+            // a timer is routinely missed.
+            statusDiv.className = `status visible ${type}`;
         }
+
+        function hideStatus() {
+            document.getElementById('status').className = 'status';
+        }
+        window.hideStatus = hideStatus;
     </script>
 </body>
 </html>
