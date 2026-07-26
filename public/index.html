@@ -176,12 +176,21 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            display: flex;
-            align-items: center;
             height: 64px;
-            padding: 0 8px;
             background: var(--surface);
             border-bottom: 1px solid var(--border);
+        }
+
+        /* The bar spans the window, but its tabs share the content column's
+           width and gutter, so the active tab's block lines up with the left
+           edge of the panels below it. */
+        .topbar-inner {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 16px;
         }
 
         .tab-buttons {
@@ -547,11 +556,13 @@
 </head>
 <body>
     <header class="topbar">
-        <nav class="tab-buttons">
-            <button class="tab-button active" onclick="switchTab('settings')"><i class="mdi mdi-cog"></i><span>Settings</span></button>
-            <button class="tab-button" onclick="switchTab('smart-alarms')"><i class="mdi mdi-alarm-light"></i><span>Smart Alarms</span></button>
-            <button class="tab-button" onclick="switchTab('actions')"><i class="mdi mdi-flash"></i><span>Actions</span></button>
-        </nav>
+        <div class="topbar-inner">
+            <nav class="tab-buttons">
+                <button class="tab-button active" onclick="switchTab('settings')"><i class="mdi mdi-cog"></i><span>Settings</span></button>
+                <button class="tab-button" onclick="switchTab('smart-alarms')"><i class="mdi mdi-alarm-light"></i><span>Smart Alarms</span></button>
+                <button class="tab-button" onclick="switchTab('actions')"><i class="mdi mdi-flash"></i><span>Actions</span></button>
+            </nav>
+        </div>
     </header>
 
     <div class="container">
